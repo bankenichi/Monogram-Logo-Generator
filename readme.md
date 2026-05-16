@@ -4,7 +4,7 @@
 
 ---
 
-![Monogram Studio Preview](preview-image.png)
+![Monogram Studio Preview](\preview\preview4.png)
 
 A sleek, completely free, browser-based generator for creating high-quality monograms, logos, and custom tokens. 
 
