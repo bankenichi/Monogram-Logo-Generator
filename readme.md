@@ -37,6 +37,8 @@ Because this app relies on zero backend architecture or build steps, running it 
    git clone [https://github.com/bankenichi/Monogram-Logo-Generator.git](https://github.com/bankenichi/Monogram-Logo-Generator.git)
 2. Open index.html in your browser of choice
 
-<a href="https://ko-fi.com/bankenichi" target="_blank">
-  <img src="https://raw.githubusercontent.com/bankenichi/Monogram-Logo-Generator/main/kofi%20logo.png" alt="Support me on Ko-fi" height="40">
-</a>
+<div align="center">
+  <a href="https://ko-fi.com/bankenichi" target="_blank">
+    <img src="https://raw.githubusercontent.com/bankenichi/Monogram-Logo-Generator/main/kofi%20logo.png" alt="Support me on Ko-fi" height="120">
+  </a>
+</div>
