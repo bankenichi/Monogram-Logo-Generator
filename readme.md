@@ -1,4 +1,4 @@
-# Monogram Studio 🎨
+# Monogram Studio 
 
 **Live Demo:** [https://bankenichi.github.io/Monogram-Logo-Generator/](https://bankenichi.github.io/Monogram-Logo-Generator/)
 
@@ -10,12 +10,12 @@ A sleek, completely free, browser-based generator for creating high-quality mono
 
 No sign-ups, no premium paywalls, no watermarks, and no server-side processing. Everything runs purely in your browser using React and the HTML5 Canvas API, allowing you to instantly export crisp PNGs.
 
-## 🚀 Perfect For
+##  Perfect For
 * **Tabletop RPGs & VTTs:** Quickly generate custom faction crests, player tokens, and campaign logos for your D&D or sci-fi games.
 * **Indie Developers:** Create polished placeholder logos or app icons in seconds.
 * **Personal Branding:** Fast avatars and profile pictures for Discord, GitHub, or social media.
 
-## ✨ Features
+##  Features
 * **Instant PNG Export:** Click a button and immediately download your high-res design.
 * **Dynamic Gradients & Glows:** Full control over linear and radial gradients, color stops, and neon shadow intensities.
 * **Custom Typography:** Fine-tune letter sizing, name spacing, and outline strokes.
@@ -23,14 +23,14 @@ No sign-ups, no premium paywalls, no watermarks, and no server-side processing. 
 * **Save/Load States:** Export your current design settings as a lightweight `.json` file to re-import and edit later.
 * **One-Click Presets:** Includes built-in aesthetic themes (Royal Gold, Midnight Aurora, Neon Noir, etc.) to get you started.
 
-## 🛠️ Tech Stack
+##  Tech Stack
 This project is built as a highly portable Single Page Application (SPA) contained entirely within one file.
 * **React 18** (Loaded via CDN)
 * **Babel** (In-browser JSX compilation)
 * **HTML5 Canvas API** (For rendering and image generation)
 * **Vanilla CSS3** (Responsive CSS Grid/Flexbox UI)
 
-## 💻 Local Setup
+##  Local Setup
 Because this app relies on zero backend architecture or build steps, running it locally is incredibly simple:
 1. Clone the repository:
    ```bash
