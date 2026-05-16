@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monogram Studio</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Poppins:wght@400;500;700;900&display=swap" rel="stylesheet">
+  
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useRef, useEffect, useCallback, useMemo } = React;
+
+    // ── Debounce hook — throttles canvas redraws on slider drag ──
+    function useDebounce(value, delay) {
+      const [debounced, setDebounced] = useState(value);
+      useEffect(() => {
+        const t = setTimeout(() => setDebounced(value), delay);
+        return () => clearTimeout(t);
+      }, [value, delay]);
+      return debounced;
+    }
+
+    const PRESETS = [
+      {
+        bigLetter: "RG", name: "Royal Gold", bgTop: "#160e3c", bgBot: "#0a0624", bgGradientType: "linear", bgGradientAngle: 90, bgGradientStop: 100,
+        kTop: "#ffdc50", kBot: "#c88c14", kGradientType: "linear", kGradientAngle: 90, kGradientStop: 100,
+        nameTop: "#ffc828", nameBot: "#ffc828", nameGradientType: "linear", nameGradientAngle: 90, nameGradientStop: 100,
+        outlineColor: "#100a2e", ring1: "#ffc828", ring2: "#643cb4", glow: true, glowColor: "#ffdc50",
+      },
+      {
+        bigLetter: "MA", name: "Midnight Aurora", bgTop: "#080c28", bgBot: "#140832", bgGradientType: "linear", bgGradientAngle: 90, bgGradientStop: 100,
+        kTop: "#00dcc8", kBot: "#8c3cff", kGradientType: "linear", kGradientAngle: 90, kGradientStop: 100,
+        nameTop: "#00dcff", nameBot: "#00dcff", nameGradientType: "linear", nameGradientAngle: 90, nameGradientStop: 100,
+        outlineColor: "#080c28", ring1: "#00b4c8", ring2: "#502898", glow: true, glowColor: "#00dcc8",
+      },
+      {
+        bigLetter: "CE", name: "Crimson Ember", bgTop: "#500808", bgBot: "#1e0404", bgGradientType: "linear", bgGradientAngle: 90, bgGradientStop: 100,
+        kTop: "#ff8c00", kBot: "#ffdc28", kGradientType: "linear", kGradientAngle: 90, kGradientStop: 100,
+        nameTop: "#f5e6be", nameBot: "#f5e6be", nameGradientType: "linear", nameGradientAngle: 90, nameGradientStop: 100,
+        outlineColor: "#3c0404", ring1: "#dc5014", ring2: "#b4280a", glow: true, glowColor: "#ff6400",
+      },
+      {
+        bigLetter: "AS", name: "Arctic Silver", bgTop: "#e6ebf5", bgBot: "#c8d2e4", bgGradientType: "linear", bgGradientAngle: 90, bgGradientStop: 100,
+        kTop: "#ffffff", kBot: "#8c96aa", kGradientType: "linear", kGradientAngle: 90, kGradientStop: 100,
+        nameTop: "#12163c", nameBot: "#12163c", nameGradientType: "linear", nameGradientAngle: 90, nameGradientStop: 100,
+        outlineColor: "#b4bec8", ring1: "#9696be", ring2: "#b4bec8", glow: false, glowColor: "#ffffff",
+      },
+      {
+        bigLetter: "FO", name: "Forest Obsidian", bgTop: "#0a1e10", bgBot: "#041008", bgGradientType: "linear", bgGradientAngle: 90, bgGradientStop: 100,
+        kTop: "#ffc828", kBot: "#b4f050", kGradientType: "linear", kGradientAngle: 90, kGradientStop: 100,
+        nameTop: "#f0f8eb", nameBot: "#f0f8eb", nameGradientType: "linear", nameGradientAngle: 90, nameGradientStop: 100,
+        outlineColor: "#061410", ring1: "#64b43c", ring2: "#3c7820", glow: true, glowColor: "#8cdc28",
+      },
+      {
+        bigLetter: "NN", name: "Neon Noir", bgTop: "#060408", bgBot: "#060408", bgGradientType: "linear", bgGradientAngle: 90, bgGradientStop: 100,
+        kTop: "#ff00b4", kBot: "#7800ff", kGradientType: "linear", kGradientAngle: 90, kGradientStop: 100,
+        nameTop: "#ff50c8", nameBot: "#ff50c8", nameGradientType: "linear", nameGradientAngle: 90, nameGradientStop: 100,
+        outlineColor: "#060408", ring1: "#c800a0", ring2: "#6400c8", glow: true, glowColor: "#ff00b4",
+      },
+    ];
+
+    const SHAPES = ["circle", "square", "rounded-square", "diamond", "hexagon", "triangle", "pentagram", "hexagram"];
+
+    function hexToRgb(hex) {
+      const r = parseInt(hex.slice(1,3),16);
+      const g = parseInt(hex.slice(3,5),16);
+      const b = parseInt(hex.slice(5,7),16);
+      return [r,g,b];
+    }
+
+    function createDynamicGradient(ctx, type, angle, stop, topColor, botColor, cx, cy, rLen, gLen) {
+      let grad;
+      const stopRatio = Math.max(0.01, Math.min(1, stop / 100));
+
+      if (type === "linear") {
+        const angleRad = (angle * Math.PI) / 180;
+        const gx1 = cx - Math.cos(angleRad)*gLen/2;
+        const gy1 = cy - Math.sin(angleRad)*gLen/2;
+        const gx2 = cx + Math.cos(angleRad)*gLen/2;
+        const gy2 = cy + Math.sin(angleRad)*gLen/2;
+        grad = ctx.createLinearGradient(gx1,gy1,gx2,gy2);
+      } else {
+        grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rLen);
+      }
+      grad.addColorStop(0, topColor);
+      grad.addColorStop(stopRatio, botColor);
+      if (stopRatio < 1) grad.addColorStop(1, botColor);
+      return grad;
+    }
+
+    function drawMonogram(canvas, settings) {
+      const { bigLetter, name, shape,
+        bgTop, bgBot, bgGradientType, bgGradientAngle, bgGradientStop,
+        kTop, kBot, kGradientType, kGradientAngle, kGradientStop,
+        nameTop, nameBot, nameGradientType, nameGradientAngle, nameGradientStop,
+        outlineColor, ring1, ring2,
+        glow, glowColor, glowIntensity,
+        letterSize, nameSize, letterSpacing, outlineWidth } = settings;
+
+      const W = 700, H = 700;
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0,0,W,H);
+
+      const cx = W/2, cy = H/2, R = W/2 - 16;
+
+      // ── Background shape ──
+      ctx.save();
+      clipShape(ctx, shape, cx, cy, R);
+
+      const bgGrad = createDynamicGradient(ctx, bgGradientType, bgGradientAngle, bgGradientStop, bgTop, bgBot, cx, cy, H * 0.7, H);
+      ctx.fillStyle = bgGrad;
+      ctx.fill();
+      ctx.restore();
+
+      // ── Rings ──
+      strokeShape(ctx, shape, cx, cy, R, ring1, 5);
+      strokeShape(ctx, shape, cx, cy, R-18, ring2, 2);
+
+      // ── Big letter: gradient ──
+      ctx.font = `900 ${letterSize}px 'Poppins', sans-serif`;
+      ctx.textAlign = "center";
+      
+      ctx.textBaseline = "alphabetic"; 
+      const kY = cy + (letterSize * 0.355);
+
+      // Glow pass
+      if (glow) {
+        const glowRgb = hexToRgb(glowColor);
+        for (const [rad, alpha] of [[32,0.12],[18,0.2],[8,0.35]]) {
+          ctx.save();
+          ctx.shadowColor = `rgba(${glowRgb[0]},${glowRgb[1]},${glowRgb[2]},${alpha * glowIntensity})`;
+          ctx.shadowBlur = rad * glowIntensity * 2;
+          ctx.fillStyle = `rgba(${glowRgb[0]},${glowRgb[1]},${glowRgb[2]},0)`;
+          ctx.fillText(bigLetter, cx, kY);
+          ctx.restore();
+        }
+        ctx.save();
+        ctx.shadowColor = `rgba(${glowRgb[0]},${glowRgb[1]},${glowRgb[2]},0.5)`;
+        ctx.shadowBlur = 40 * glowIntensity;
+        ctx.fillStyle = glowColor;
+        ctx.fillText(bigLetter, cx, kY);
+        ctx.restore();
+      }
+
+      // Dynamic Gradient K pass
+      const kGrad = createDynamicGradient(ctx, kGradientType, kGradientAngle, kGradientStop, kTop, kBot, cx, cy, H * 0.45, H * 0.8);
+      ctx.fillStyle = kGrad;
+      ctx.fillText(bigLetter, cx, kY);
+
+      // ── Name text: native outlined ──
+      ctx.font = `700 ${nameSize}px 'Poppins', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.letterSpacing = `${letterSpacing}px`; 
+      
+      const nameY = cy + (nameSize * 0.355);
+      const nameX = cx + (letterSpacing / 2);
+
+      ctx.lineJoin = "round";
+      ctx.lineWidth = outlineWidth * 2;
+      ctx.strokeStyle = outlineColor;
+      ctx.strokeText(name, nameX, nameY);
+
+      const nameGrad = createDynamicGradient(ctx, nameGradientType, nameGradientAngle, nameGradientStop, nameTop, nameBot, cx, nameY, nameSize * 1.5, nameSize * 2);
+      ctx.fillStyle = nameGrad;
+      ctx.fillText(name, nameX, nameY);
+      
+      ctx.letterSpacing = "0px"; 
+    }
+
+    function clipShape(ctx, shape, cx, cy, R) {
+      ctx.beginPath();
+      buildShapePath(ctx, shape, cx, cy, R);
+      ctx.clip();
+    }
+
+    function strokeShape(ctx, shape, cx, cy, R, color, width) {
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      buildShapePath(ctx, shape, cx, cy, R);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function buildShapePath(ctx, shape, cx, cy, R) {
+      switch(shape) {
+        case "circle":
+          ctx.arc(cx, cy, R, 0, Math.PI*2);
+          break;
+        case "square":
+          ctx.rect(cx-R, cy-R, R*2, R*2);
+          break;
+        case "rounded-square": {
+          const r = R*0.18;
+          ctx.moveTo(cx-R+r, cy-R);
+          ctx.lineTo(cx+R-r, cy-R);
+          ctx.arcTo(cx+R, cy-R, cx+R, cy-R+r, r);
+          ctx.lineTo(cx+R, cy+R-r);
+          ctx.arcTo(cx+R, cy+R, cx+R-r, cy+R, r);
+          ctx.lineTo(cx-R+r, cy+R);
+          ctx.arcTo(cx-R, cy+R, cx-R, cy+R-r, r);
+          ctx.lineTo(cx-R, cy-R+r);
+          ctx.arcTo(cx-R, cy-R, cx-R+r, cy-R, r);
+          ctx.closePath();
+          break;
+        }
+        case "diamond":
+          ctx.moveTo(cx, cy-R);
+          ctx.lineTo(cx+R, cy);
+          ctx.lineTo(cx, cy+R);
+          ctx.lineTo(cx-R, cy);
+          ctx.closePath();
+          break;
+        case "hexagon": {
+          for (let i=0; i<6; i++) {
+            const a = (Math.PI/3)*i - Math.PI/6;
+            const px = cx + R*Math.cos(a), py = cy + R*Math.sin(a);
+            i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+          }
+          ctx.closePath();
+          break;
+        }
+        case "triangle":
+          ctx.moveTo(cx, cy-R);
+          ctx.lineTo(cx + R*Math.cos(Math.PI/6), cy + R*Math.sin(Math.PI/6));
+          ctx.lineTo(cx - R*Math.cos(Math.PI/6), cy + R*Math.sin(Math.PI/6));
+          ctx.closePath();
+          break;
+        case "pentagram": {
+          for (let i=0; i<5; i++) {
+            const a = -Math.PI/2 + (i * 2 * Math.PI / 5);
+            const px = cx + R*Math.cos(a), py = cy + R*Math.sin(a);
+            i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+            const a2 = a + Math.PI / 5;
+            const r2 = R * 0.382;
+            ctx.lineTo(cx + r2*Math.cos(a2), cy + r2*Math.sin(a2));
+          }
+          ctx.closePath();
+          break;
+        }
+        case "hexagram": {
+          for (let i=0; i<6; i++) {
+            const a = -Math.PI/2 + (i * 2 * Math.PI / 6);
+            const px = cx + R*Math.cos(a), py = cy + R*Math.sin(a);
+            i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+            const a2 = a + Math.PI / 6;
+            const r2 = R * 0.577;
+            ctx.lineTo(cx + r2*Math.cos(a2), cy + r2*Math.sin(a2));
+          }
+          ctx.closePath();
+          break;
+        }
+      }
+    }
+
+    // ── UI Components ──
+    function ColorRow({ label, value, onChange }) {
+      return (
+        <div className="control-row">
+          <label>{label}</label>
+          <div className="color-input-wrap">
+            <input type="color" value={value} onChange={e=>onChange(e.target.value)} />
+            <span className="hex-label">{value}</span>
+          </div>
+        </div>
+      );
+    }
+
+    function SliderRow({ label, value, min, max, step=1, onChange, unit="" }) {
+      return (
+        <div className="control-row">
+          <label>{label}</label>
+          <div className="slider-wrap">
+            <input type="range" min={min} max={max} step={step} value={value}
+              onChange={e=>onChange(Number(e.target.value))} />
+            <span className="val-label">{value}{unit}</span>
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const canvasRef = useRef(null);
+      const [tab, setTab] = useState("design");
+      const [fontLoaded, setFontLoaded] = useState(false);
+
+      const [settings, setSettings] = useState({
+        bigLetter: "E", name: "EXAMPLE", shape: "circle",
+        bgTop: "#160e3c", bgBot: "#0a0624", bgGradientType: "linear", bgGradientAngle: 90, bgGradientStop: 100,
+        kTop: "#ffdc50", kBot: "#c88c14", kGradientType: "linear", kGradientAngle: 90, kGradientStop: 100,
+        nameTop: "#ffc828", nameBot: "#ffc828", nameGradientType: "linear", nameGradientAngle: 90, nameGradientStop: 100,
+        outlineColor: "#100a2e", ring1: "#ffc828", ring2: "#643cb4",
+        glow: true, glowColor: "#ffdc50", glowIntensity: 1.0,
+        letterSize: 650, nameSize: 84, letterSpacing: 28, outlineWidth: 2, 
+      });
+
+      const set = useCallback((key, val) => setSettings(s => ({ ...s, [key]: val })), []);
+
+      // Force canvas to wait for exact weights defined in ctx.font
+      useEffect(() => {
+        document.fonts.ready.then(() => {
+          Promise.all([
+            document.fonts.load("900 10px Poppins"),
+            document.fonts.load("700 10px Poppins")
+          ]).then(() => setFontLoaded(true))
+            .catch(() => setFontLoaded(true)); 
+        });
+      }, []);
+
+      const debouncedSettings = useDebounce(settings, 0);
+
+      // Draw only when font is ready
+      useEffect(() => {
+        if (!fontLoaded || !canvasRef.current) return;
+        drawMonogram(canvasRef.current, debouncedSettings);
+      }, [debouncedSettings, fontLoaded]);
+
+      const downloadPNG = () => {
+        const canvas = canvasRef.current;
+        const link = document.createElement("a");
+        link.download = `monogram_${settings.bigLetter || 'logo'}_${settings.name || 'design'}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      };
+
+      const applyPreset = (preset) => setSettings(s => ({ ...s, ...preset }));
+
+      const [importError, setImportError] = useState(null);
+      const [importSuccess, setImportSuccess] = useState(false);
+      const importFileRef = useRef(null);
+
+      const exportJSON = () => {
+        const json = JSON.stringify(settings, null, 2);
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.download = `monogram_${settings.bigLetter || 'logo'}_${settings.name || 'design'}.json`;
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+      };
+
+      const importJSON = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setImportError(null);
+        setImportSuccess(false);
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const parsed = JSON.parse(ev.target.result);
+            // Validate it has at least some expected keys
+            if (parsed.bgTop === undefined) {
+              setImportError("Invalid design file — doesn't look like a Monogram Studio export.");
+              return;
+            }
+            setSettings(s => ({ ...s, ...parsed }));
+            setImportSuccess(true);
+            setTimeout(() => setImportSuccess(false), 3000);
+          } catch {
+            setImportError("Could not parse file. Make sure it's a valid JSON export.");
+          }
+        };
+        reader.readAsText(file);
+        // Reset input so the same file can be re-imported
+        e.target.value = "";
+      };
+
+      return (
+        <>
+          <style>{`
+            *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+            html { -webkit-text-size-adjust: 100%; }
+            body { background: #0c0a14; color: #e8e0ff; font-family: 'Poppins', sans-serif; height: 100vh; overflow: hidden; overscroll-behavior: none; }
+
+            /* ── Layout ── */
+            .app { display: grid; grid-template-columns: 1fr 380px; grid-template-rows: 70px 1fr; height: 100vh; max-width: 1200px; margin: 0 auto; overflow: hidden; }
+            
+            .header { grid-column: 1; grid-row: 1; height: 70px; padding: 0 32px; display: flex; align-items: baseline; padding-top: 26px; gap: 16px; border-bottom: 1px solid rgba(255,255,255,0.06); box-sizing: border-box; }
+            .header h1 { font-size: 22px; font-weight: 700; letter-spacing: 0.08em; background: linear-gradient(120deg, #ffc828, #c87eff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+            .header span { font-size: 12px; color: rgba(255,255,255,0.3); letter-spacing: 0.15em; text-transform: uppercase; }
+
+            /* ── Canvas area ── */
+            .canvas-area { grid-column: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; gap: 20px; background: radial-gradient(ellipse at 50% 40%, rgba(100,60,200,0.08) 0%, transparent 70%); }
+            .canvas-row { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 40px; width: 100%; max-width: 800px; }
+            .canvas-wrap { position: relative; width: 100%; max-width: 440px; aspect-ratio: 1; border-radius: 20px; overflow: hidden; background: repeating-conic-gradient(rgba(255,255,255,0.04) 0% 25%, transparent 0% 50%) 0 0 / 20px 20px; box-shadow: 0 0 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06); }
+            canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+            .canvas-sidebar { display: flex; flex-direction: column; width: 150px; flex-shrink: 0; gap: 24px; }
+            .canvas-actions { display: flex; gap: 12px; }
+            
+            /* Presets Label (Hidden on Desktop) */
+            .presets-label { display: none; }
+
+            /* ── Buttons ── */
+            .btn { padding: 10px 24px; border-radius: 8px; border: none; font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; cursor: pointer; transition: all 0.15s; -webkit-tap-highlight-color: transparent; touch-action: manipulation; width: 100%; }
+            .btn-primary { background: linear-gradient(135deg, #ffc828, #ff8c28); color: #1a0800; }
+            .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(255,180,0,0.4); }
+            .btn-secondary { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.12); }
+            .btn-secondary:hover { background: rgba(255,255,255,0.12); }
+
+            /* ── Presets ── */
+            .presets { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+            .preset-btn { padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.65); font-family: 'Poppins', sans-serif; font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.15s; letter-spacing: 0.04em; -webkit-tap-highlight-color: transparent; touch-action: manipulation; text-align: center; }
+            .preset-btn:hover { background: rgba(255,200,40,0.15); border-color: rgba(255,200,40,0.4); color: #ffc828; }
+
+            /* ── Panel ── */
+            .panel { grid-column: 2; grid-row: 1 / 3; background: #120f1e; border-left: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; overflow: hidden; height: 100%; }
+            
+            .tabs { display: flex; height: 70px; border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; }
+            .tab { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; color: rgba(255,255,255,0.3); transition: all 0.15s; border: none; border-bottom: 2px solid transparent; background: none; font-family: 'Poppins', sans-serif; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+            .tab.active { color: #ffc828; border-bottom-color: #ffc828; }
+            .tab:hover:not(.active) { color: rgba(255,255,255,0.6); }
+            .panel-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px; display: flex; flex-direction: column; gap: 20px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; }
+
+            /* ── Controls ── */
+            .section { display: flex; flex-direction: column; gap: 10px; }
+            .section-title { font-size: 10px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.25); padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+            .control-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; }
+            .control-row label { font-size: 12px; color: rgba(255,255,255,0.55); white-space: nowrap; min-width: 100px; }
+            .text-input { flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 8px 10px; color: #e8e0ff; font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; outline: none; transition: border-color 0.15s; text-transform: uppercase; min-height: 40px; }
+            .text-input:focus { border-color: rgba(255,200,40,0.5); }
+            .color-input-wrap { display: flex; align-items: center; gap: 8px; }
+            input[type=color] { width: 40px; height: 34px; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; background: none; cursor: pointer; padding: 2px; }
+            .hex-label { font-family: 'DM Mono', monospace; font-size: 11px; color: rgba(255,255,255,0.35); min-width: 54px; }
+            .slider-wrap { display: flex; align-items: center; gap: 10px; flex: 1; }
+            input[type=range] { flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.12); outline: none; cursor: pointer; }
+            input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #ffc828; cursor: pointer; box-shadow: 0 0 6px rgba(255,200,40,0.5); }
+            input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #ffc828; cursor: pointer; border: none; box-shadow: 0 0 6px rgba(255,200,40,0.5); }
+            .val-label { font-family: 'DM Mono', monospace; font-size: 11px; color: rgba(255,255,255,0.4); min-width: 36px; text-align: right; }
+            .shape-picker { display: flex; gap: 6px; flex-wrap: wrap; }
+            .shape-btn { padding: 7px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.5); font-family: 'Poppins', sans-serif; font-size: 11px; cursor: pointer; transition: all 0.15s; text-transform: capitalize; -webkit-tap-highlight-color: transparent; touch-action: manipulation; min-height: 34px; }
+            .shape-btn.active { background: rgba(255,200,40,0.15); border-color: rgba(255,200,40,0.5); color: #ffc828; }
+            .toggle-row { display: flex; align-items: center; justify-content: space-between; min-height: 36px; }
+            .toggle-row label { font-size: 12px; color: rgba(255,255,255,0.55); }
+            .toggle { width: 44px; height: 24px; background: rgba(255,255,255,0.1); border-radius: 12px; border: none; cursor: pointer; position: relative; transition: background 0.2s; -webkit-tap-highlight-color: transparent; touch-action: manipulation; flex-shrink: 0; }
+            .toggle.on { background: #ffc828; }
+            .toggle::after { content:''; position: absolute; width: 18px; height: 18px; border-radius: 50%; background: white; top: 3px; left: 3px; transition: transform 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+            .toggle.on::after { transform: translateX(20px); }
+
+            /* ── Export tab ── */
+            .export-wrap { display: flex; flex-direction: column; gap: 20px; }
+            .export-section { display: flex; flex-direction: column; gap: 10px; }
+            .export-desc { font-size: 12px; color: rgba(255,255,255,0.4); line-height: 1.6; }
+            .export-btn { display: flex; align-items: center; gap: 8px; justify-content: center; width: 100%; padding: 14px 20px; font-size: 13px; border-radius: 10px; min-height: 48px; }
+            .btn-import { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.75); border: 1px solid rgba(255,255,255,0.15); font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; transition: all 0.15s; }
+            .btn-import:hover { background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.28); color: #fff; }
+            .btn-icon { font-size: 15px; }
+            .export-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 2px 0; }
+            .import-error { font-size: 11px; color: #ff7070; background: rgba(255,80,80,0.08); border: 1px solid rgba(255,80,80,0.18); border-radius: 7px; padding: 8px 12px; line-height: 1.5; }
+            .import-success { font-size: 11px; color: #7effa0; background: rgba(80,255,120,0.08); border: 1px solid rgba(80,255,120,0.2); border-radius: 7px; padding: 8px 12px; }
+            .json-preview { background: #0a0812; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px; font-family: 'DM Mono', monospace; font-size: 10px; line-height: 1.65; color: rgba(160,224,128,0.75); white-space: pre; overflow-x: auto; overflow-y: auto; max-height: 260px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent; }
+
+            /* ── Mobile layout (≤ 768px) ── */
+            @media (max-width: 768px) {
+              body { height: 100dvh; overflow: hidden; }
+              .app { display: flex; flex-direction: column; height: 100dvh; min-height: 100dvh; overflow: hidden; }
+              
+              .header { padding: 12px 14px 10px; height: auto; gap: 10px; flex-shrink: 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+              .header h1 { font-size: 17px; margin-top: 0; }
+              .header span { font-size: 10px; }
+              
+              .canvas-area { padding: 10px 12px; gap: 0; background: #0c0a14; flex-shrink: 0; }
+              .canvas-row { flex-direction: row-reverse; align-items: stretch; gap: 10px; max-width: 100%; height: 160px; }
+              .canvas-wrap { width: auto; flex: 0 0 160px; height: 160px; max-width: 160px; border-radius: 12px; margin: 0; }
+              
+              .canvas-sidebar { display: flex; flex-direction: column; justify-content: space-between; flex: 1; gap: 4px; min-width: 0; }
+              
+              .presets-label { display: block; font-size: 10px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 2px; }
+              
+              .presets { 
+                display: grid; 
+                grid-template-columns: 1fr 1fr; 
+                gap: 6px; 
+                justify-content: flex-start; 
+                align-content: start;
+                max-width: none; 
+                overflow-y: auto; 
+                flex: 1; 
+                min-height: 0; 
+              }
+              
+              .preset-btn { min-height: 24px; padding: 0 6px; display: flex; align-items: center; font-size: 9px; border-radius: 6px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1; }
+              
+              .canvas-actions { margin-top: auto; flex-shrink: 0; }
+              .canvas-actions .btn { width: 100%; padding: 9px 10px; font-size: 11px; text-align: center; }
+              
+              .panel { border-left: none; border-top: 1px solid rgba(255,255,255,0.08); flex: 1; display: flex; flex-direction: column; min-height: 0; position: static; height: auto; }
+              .tabs { height: auto; flex-shrink: 0; }
+              .panel-content { padding: 14px; gap: 14px; flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+              
+              .tab { font-size: 10px; padding: 12px 4px; letter-spacing: 0.05em; height: auto; display: block; }
+              .control-row label { min-width: 88px; font-size: 11px; }
+              input[type=range]::-webkit-slider-thumb { width: 26px; height: 26px; }
+              input[type=range]::-moz-range-thumb { width: 26px; height: 26px; }
+              .export-btn { min-height: 52px; font-size: 14px; }
+            }
+
+            /* ── Very small screens (≤ 380px) ── */
+            @media (max-width: 380px) {
+              .header h1 { font-size: 15px; }
+              .canvas-wrap { flex: 0 0 140px; height: 140px; }
+              .canvas-row { height: 140px; }
+              .preset-btn { font-size: 8px; padding: 0 5px; min-height: 22px; }
+              .control-row label { min-width: 76px; }
+            }
+          `}</style>
+
+          <div className="app">
+            <header className="header">
+              <h1>MONOGRAM STUDIO</h1>
+              <span>Logo Generator</span>
+            </header>
+
+            <div className="canvas-area">
+              <div className="canvas-row">
+                <div className="canvas-sidebar">
+                  <div className="presets-label">Presets</div>
+                  <div className="presets">
+                    {PRESETS.map(p => <button key={p.name} className="preset-btn" onClick={() => applyPreset(p)}>{p.name}</button>)}
+                  </div>
+                  <div className="canvas-actions">
+                    <button className="btn btn-primary" onClick={downloadPNG}>↓ Download PNG</button>
+                  </div>
+                </div>
+                <div className="canvas-wrap"><canvas ref={canvasRef} /></div>
+              </div>
+            </div>
+
+            <div className="panel">
+              <div className="tabs">
+                {["design","colors","export/import"].map(t => (
+                  <button key={t} className={`tab ${tab===t?"active":""}`} onClick={()=>setTab(t)}>{t}</button>
+                ))}
+              </div>
+
+              <div className="panel-content">
+                {tab === "design" && (
+                  <>
+                    <div className="section">
+                      <div className="section-title">Content</div>
+                      <div className="control-row">
+                        <label>Big Letter</label>
+                        <input className="text-input" style={{maxWidth:60,textAlign:"center",fontSize:20}}
+                          maxLength={2} value={settings.bigLetter}
+                          onChange={e=>set("bigLetter", e.target.value.toUpperCase())} />
+                      </div>
+                      <div className="control-row">
+                        <label>Name</label>
+                        <input className="text-input" value={settings.name} onChange={e=>set("name", e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="section">
+                      <div className="section-title">Shape</div>
+                      <div className="shape-picker">
+                        {SHAPES.map(s => <button key={s} className={`shape-btn ${settings.shape===s?"active":""}`} onClick={()=>set("shape",s)}>{s}</button>)}
+                      </div>
+                    </div>
+                    <div className="section">
+                      <div className="section-title">Typography</div>
+                      <SliderRow label="Letter size" value={settings.letterSize} min={300} max={700} step={10} onChange={v=>set("letterSize",v)} unit="px" />
+                      <SliderRow label="Name size" value={settings.nameSize} min={48} max={160} step={4} onChange={v=>set("nameSize",v)} unit="px" />
+                      <SliderRow label="Letter spacing" value={settings.letterSpacing} min={0} max={60} onChange={v=>set("letterSpacing",v)} unit="px" />
+                      <SliderRow label="Outline width" value={settings.outlineWidth} min={0} max={8} onChange={v=>set("outlineWidth",v)} unit="px" />
+                    </div>
+                    <div className="section">
+                      <div className="section-title">Glow</div>
+                      <div className="toggle-row">
+                        <label>Enable glow</label>
+                        <button className={`toggle ${settings.glow?"on":""}`} onClick={()=>set("glow",!settings.glow)} />
+                      </div>
+                      {settings.glow && <SliderRow label="Intensity" value={settings.glowIntensity} min={0.2} max={3} step={0.1} onChange={v=>set("glowIntensity",v)} />}
+                    </div>
+                  </>
+                )}
+
+                {tab === "colors" && (
+                  <>
+                    <div className="section">
+                      <div className="section-title">Background</div>
+                      <ColorRow label="Top color" value={settings.bgTop} onChange={v=>set("bgTop",v)} />
+                      <ColorRow label="Bottom color" value={settings.bgBot} onChange={v=>set("bgBot",v)} />
+                      <div className="shape-picker" style={{marginTop: 8}}>
+                        {["linear", "radial"].map(t => (
+                          <button key={t} className={`shape-btn ${settings.bgGradientType===t?"active":""}`}
+                            onClick={()=>set("bgGradientType", t)}>{t}</button>
+                        ))}
+                      </div>
+                      {settings.bgGradientType === "linear" && (
+                        <SliderRow label="Angle" value={settings.bgGradientAngle} min={0} max={360} onChange={v=>set("bgGradientAngle",v)} unit="°" />
+                      )}
+                      <SliderRow label="Color Stop" value={settings.bgGradientStop} min={10} max={100} onChange={v=>set("bgGradientStop",v)} unit="%" />
+                    </div>
+                    <div className="section">
+                      <div className="section-title">Big Letter</div>
+                      <ColorRow label="Gradient top" value={settings.kTop} onChange={v=>set("kTop",v)} />
+                      <ColorRow label="Gradient bot" value={settings.kBot} onChange={v=>set("kBot",v)} />
+                      <div className="shape-picker" style={{marginTop: 8}}>
+                        {["linear", "radial"].map(t => (
+                          <button key={t} className={`shape-btn ${settings.kGradientType===t?"active":""}`}
+                            onClick={()=>set("kGradientType", t)}>{t}</button>
+                        ))}
+                      </div>
+                      {settings.kGradientType === "linear" && (
+                        <SliderRow label="Angle" value={settings.kGradientAngle} min={0} max={360} onChange={v=>set("kGradientAngle",v)} unit="°" />
+                      )}
+                      <SliderRow label="Color Stop" value={settings.kGradientStop} min={10} max={100} onChange={v=>set("kGradientStop",v)} unit="%" />
+                      {settings.glow && <div style={{marginTop: 8}}><ColorRow label="Glow color" value={settings.glowColor} onChange={v=>set("glowColor",v)} /></div>}
+                    </div>
+                    <div className="section">
+                      <div className="section-title">Name Text</div>
+                      <ColorRow label="Gradient top" value={settings.nameTop} onChange={v=>set("nameTop",v)} />
+                      <ColorRow label="Gradient bot" value={settings.nameBot} onChange={v=>set("nameBot",v)} />
+                      <div className="shape-picker" style={{marginTop: 8}}>
+                        {["linear", "radial"].map(t => (
+                          <button key={t} className={`shape-btn ${settings.nameGradientType===t?"active":""}`}
+                            onClick={()=>set("nameGradientType", t)}>{t}</button>
+                        ))}
+                      </div>
+                      {settings.nameGradientType === "linear" && (
+                        <SliderRow label="Angle" value={settings.nameGradientAngle} min={0} max={360} onChange={v=>set("nameGradientAngle",v)} unit="°" />
+                      )}
+                      <SliderRow label="Color Stop" value={settings.nameGradientStop} min={10} max={100} onChange={v=>set("nameGradientStop",v)} unit="%" />
+                      <div style={{marginTop: 8}}><ColorRow label="Outline color" value={settings.outlineColor} onChange={v=>set("outlineColor",v)} /></div>
+                    </div>
+                    <div className="section">
+                      <div className="section-title">Rings</div>
+                      <ColorRow label="Outer ring" value={settings.ring1} onChange={v=>set("ring1",v)} />
+                      <ColorRow label="Inner ring" value={settings.ring2} onChange={v=>set("ring2",v)} />
+                    </div>
+                  </>
+                )}
+
+                {tab === "export/import" && (
+                  <div className="export-wrap">
+                    <div className="export-section">
+                      <div className="section-title">Export Design</div>
+                      <p className="export-desc">Save your current design as a JSON file. You can re-import it anytime to continue working.</p>
+                      <button className="btn btn-primary export-btn" onClick={exportJSON}>
+                        <span className="btn-icon">↓</span> Export JSON
+                      </button>
+                    </div>
+                    <div className="export-divider" />
+                    <div className="export-section">
+                      <div className="section-title">Import Design</div>
+                      <p className="export-desc">Load a previously exported JSON file to restore your design settings.</p>
+                      <label className="btn btn-import export-btn" style={{cursor:"pointer"}}>
+                        <span className="btn-icon">↑</span> Import JSON
+                        <input type="file" accept=".json,application/json" style={{display:"none"}} onChange={importJSON} />
+                      </label>
+                      {importError && <div className="import-error">{importError}</div>}
+                      {importSuccess && <div className="import-success">✓ Design loaded successfully!</div>}
+                    </div>
+                    <div className="export-divider" />
+                    <div className="export-section">
+                      <div className="section-title">Current Design Preview</div>
+                      <div className="json-preview">{JSON.stringify(settings, null, 2)}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
