@@ -1776,6 +1776,7 @@
                   </div>
                 )}
 
+                {tab !== "export/import" && (
                 <button 
                   className="randomize-global-btn"
                   onClick={handleRandomize}
@@ -1802,8 +1803,8 @@
                 >
                   🎲 Randomize Design
                 </button>
+                )}
 
-              
                 <a href="https://ko-fi.com/bankenichi" target="_blank" rel="noopener noreferrer" className="kofi-mobile" title="Support me on Ko-fi" aria-label="Support on Ko-fi">
                   <img src="https://raw.githubusercontent.com/bankenichi/Monogram-Logo-Generator/main/kofi%20logo.png" alt="Ko-fi" />
                 </a>
