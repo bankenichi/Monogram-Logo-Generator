@@ -992,8 +992,6 @@
 
         // 3. Formulate the exact schema matching DEFAULT_SETTINGS & PRESETS
         const randomizedMatrix = {
-          bigLetter: randomChar() + (Math.random() > 0.65 ? randomChar() : ""), // 1 or 2 letters
-          name: (randomChar() + randomChar() + randomChar() + randomChar() + "STUDIO").toUpperCase(),
           fontFamily: fontChoices[Math.floor(Math.random() * fontChoices.length)],
           shape: shapeChoices[Math.floor(Math.random() * shapeChoices.length)],
           texture: textureChoices[Math.floor(Math.random() * textureChoices.length)],
