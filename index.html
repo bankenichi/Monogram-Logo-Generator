@@ -3,20 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="A free, browser-based monogram and logo generator. Export high-res PNGs instantly.">
+  <meta name="description" content="A free, browser-based monogram and logo generator. Export high-res PNGs and SVGs instantly.">
   <meta property="og:title" content="Monogram Studio">
   <meta property="og:description" content="A free, browser-based monogram and logo generator.">
   <meta property="og:image" content="https://bankenichi.github.io/Monogram-Logo-Generator/preview-image.png">
   <meta property="og:url" content="https://bankenichi.github.io/Monogram-Logo-Generator/">
   <meta name="twitter:card" content="summary_large_image">
-  
+
   <title>Monogram Studio</title>
 
   <link rel="icon" type="image/png" href="favicon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Poppins:wght@400;500;700;900&display=swap" rel="stylesheet">
-  
+
+  <style>
+    @font-face { font-family: 'Poppins'; font-style: normal; font-weight: 700; src: url('./fonts/poppins-v24-latin-700.woff2') format('woff2'); }
+    @font-face { font-family: 'Poppins'; font-style: normal; font-weight: 900; src: url('./fonts/poppins-v24-latin-900.woff2') format('woff2'); }
+    @font-face { font-family: 'DM Mono'; font-style: normal; font-weight: 400; src: url('./fonts/dm-mono-v16-latin-500.woff2') format('woff2'); }
+    @font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 700; src: url('./fonts/playfair-display-sc-v18-latin-700.woff2') format('woff2'); }
+    @font-face { font-family: 'Bebas Neue'; font-style: normal; font-weight: 400; src: url('./fonts/bebas-neue-v16-latin-regular.woff2') format('woff2'); }
+    @font-face { font-family: 'Cinzel'; font-style: normal; font-weight: 700; src: url('./fonts/cinzel-v26-latin-700.woff2') format('woff2'); }
+    @font-face { font-family: 'Dancing Script'; font-style: normal; font-weight: 700; src: url('./fonts/dancing-script-v29-latin-700.woff2') format('woff2'); }
+    @font-face { font-family: 'Space Mono'; font-style: normal; font-weight: 700; src: url('./fonts/space-mono-v17-latin-700.woff2') format('woff2'); }
+    @font-face { font-family: 'Cormorant Upright'; font-style: normal; font-weight: 700; src: url('./fonts/cormorant-upright-v19-latin-700.woff2') format('woff2'); }
+    @font-face { font-family: 'Abril Fatface'; font-style: normal; font-weight: 400; src: url('./fonts/abril-fatface-v25-latin-regular.woff2') format('woff2'); }
+   </style>
+
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -27,7 +37,7 @@
   <script type="text/babel">
     const { useState, useRef, useEffect, useCallback, useMemo } = React;
 
-    // ── Debounce hook — throttles canvas redraws on slider drag ──
+    // ── Debounce hook ──
     function useDebounce(value, delay) {
       const [debounced, setDebounced] = useState(value);
       useEffect(() => {
@@ -37,47 +47,325 @@
       return debounced;
     }
 
+    // ── Font catalogue ──
+    const FONTS = [
+      { label: "Poppins",          family: "Poppins",          weight: 700, style: "sans-serif"   },
+      { label: "Playfair SC",         family: "Playfair Display",  weight: 700, style: "serif"        },
+      { label: "Bebas Neue",       family: "Bebas Neue",        weight: 400, style: "display"      },
+      { label: "Cinzel",           family: "Cinzel",            weight: 700, style: "roman"        },
+      { label: "Dancing Script",   family: "Dancing Script",    weight: 700, style: "script"       },
+      { label: "Space Mono",       family: "Space Mono",        weight: 700, style: "mono"         },
+      { label: "Cormorant",        family: "Cormorant Upright",  weight: 700, style: "elegant"     },
+      { label: "Abril Fatface",    family: "Abril Fatface",     weight: 400, style: "display"      },
+    ];
+
+    const TEXTURES = ["none", "crosshatch", "dots", "grid", "lines"];
+
     const PRESETS = [
       {
-        bigLetter: "RG", name: "Royal Gold", bgTop: "#160e3c", bgBot: "#0a0624", bgGradientType: "linear", bgGradientAngle: 90, bgGradientStop: 100,
-        kTop: "#ffdc50", kBot: "#c88c14", kGradientType: "linear", kGradientAngle: 90, kGradientStop: 100,
-        nameTop: "#ffc828", nameBot: "#ffc828", nameGradientType: "linear", nameGradientAngle: 90, nameGradientStop: 100,
-        outlineColor: "#100a2e", ring1: "#ffc828", ring2: "#643cb4", glow: true, glowColor: "#ffdc50",
+        bigLetter: "RG",
+        name: "Royal Gold",
+        shape: "circle",
+        bgTop: "#160e3c",
+        bgBot: "#0a0624",
+        bgGradientType: "linear",
+        bgGradientAngle: 90,
+        bgGradientStop: 100,
+        kTop: "#ffdc50",
+        kBot: "#c88c14",
+        kGradientType: "linear",
+        kGradientAngle: 90,
+        kGradientStop: 100,
+        nameTop: "#ffc828",
+        nameBot: "#ffc828",
+        nameGradientType: "linear",
+        nameGradientAngle: 90,
+        nameGradientStop: 100,
+        outlineColor: "#100a2e",
+        ring1: "#ffc828",
+        ring2: "#643cb4",
+        ring1Width: 5,
+        ring2Width: 2,
+        ring1Gap: 18,
+        showRing1: true,
+        showRing2: true,
+        glow: true,
+        glowColor: "#ffdc50",
+        glowIntensity: 1,
+        letterSize: 400,
+        nameSize: 80,
+        letterSpacing: 17,
+        outlineWidth: 2,
+        nameOffsetY: 0,
+        letterOffsetX: 0,
+        letterOffsetY: 0,
+        fontFamily: "Poppins",
+        texture: "crosshatch"
       },
       {
-        bigLetter: "MA", name: "Midnight Aurora", bgTop: "#080c28", bgBot: "#140832", bgGradientType: "linear", bgGradientAngle: 90, bgGradientStop: 100,
-        kTop: "#00dcc8", kBot: "#8c3cff", kGradientType: "linear", kGradientAngle: 90, kGradientStop: 100,
-        nameTop: "#00dcff", nameBot: "#00dcff", nameGradientType: "linear", nameGradientAngle: 90, nameGradientStop: 100,
-        outlineColor: "#080c28", ring1: "#00b4c8", ring2: "#502898", glow: true, glowColor: "#00dcc8",
+        bigLetter: "MA",
+        name: "Midnight Aurora",
+        shape: "rounded-square",
+        bgTop: "#080c28",
+        bgBot: "#140832",
+        bgGradientType: "linear",
+        bgGradientAngle: 90,
+        bgGradientStop: 100,
+        kTop: "#00dcc8",
+        kBot: "#8c3cff",
+        kGradientType: "linear",
+        kGradientAngle: 90,
+        kGradientStop: 100,
+        nameTop: "#00dcff",
+        nameBot: "#00dcff",
+        nameGradientType: "linear",
+        nameGradientAngle: 90,
+        nameGradientStop: 100,
+        outlineColor: "#080c28",
+        ring1: "#00b4c8",
+        ring2: "#502898",
+        ring1Width: 5,
+        ring2Width: 3,
+        ring1Gap: 22,
+        showRing1: true,
+        showRing2: true,
+        glow: true,
+        glowColor: "#00dcc8",
+        glowIntensity: 1.2,
+        letterSize: 380,
+        nameSize: 64,
+        letterSpacing: 3,
+        outlineWidth: 3,
+        nameOffsetY: 130,
+        letterOffsetX: -5,
+        letterOffsetY: -45,
+        fontFamily: "Cinzel",
+        texture: "grid"
       },
       {
-        bigLetter: "CE", name: "Crimson Ember", bgTop: "#500808", bgBot: "#1e0404", bgGradientType: "linear", bgGradientAngle: 90, bgGradientStop: 100,
-        kTop: "#ff8c00", kBot: "#ffdc28", kGradientType: "linear", kGradientAngle: 90, kGradientStop: 100,
-        nameTop: "#f5e6be", nameBot: "#f5e6be", nameGradientType: "linear", nameGradientAngle: 90, nameGradientStop: 100,
-        outlineColor: "#3c0404", ring1: "#dc5014", ring2: "#b4280a", glow: true, glowColor: "#ff6400",
+        bigLetter: "CE",
+        name: "Crimson Ember",
+        shape: "diamond",
+        bgTop: "#500808",
+        bgBot: "#1e0404",
+        bgGradientType: "linear",
+        bgGradientAngle: 90,
+        bgGradientStop: 100,
+        kTop: "#ff8c00",
+        kBot: "#ffdc28",
+        kGradientType: "linear",
+        kGradientAngle: 90,
+        kGradientStop: 100,
+        nameTop: "#f5e6be",
+        nameBot: "#f5e6be",
+        nameGradientType: "linear",
+        nameGradientAngle: 90,
+        nameGradientStop: 100,
+        outlineColor: "#3c0404",
+        ring1: "#dc5014",
+        ring2: "#b4280a",
+        ring1Width: 5,
+        ring2Width: 2,
+        ring1Gap: 18,
+        showRing1: true,
+        showRing2: true,
+        glow: true,
+        glowColor: "#ff6400",
+        glowIntensity: 1,
+        letterSize: 590,
+        nameSize: 56,
+        letterSpacing: 27,
+        outlineWidth: 2,
+        nameOffsetY: -5,
+        letterOffsetX: 0,
+        letterOffsetY: 0,
+        fontFamily: "Bebas Neue",
+        texture: "dots"
       },
       {
-        bigLetter: "AS", name: "Arctic Silver", bgTop: "#e6ebf5", bgBot: "#c8d2e4", bgGradientType: "linear", bgGradientAngle: 90, bgGradientStop: 100,
-        kTop: "#ffffff", kBot: "#8c96aa", kGradientType: "linear", kGradientAngle: 90, kGradientStop: 100,
-        nameTop: "#12163c", nameBot: "#12163c", nameGradientType: "linear", nameGradientAngle: 90, nameGradientStop: 100,
-        outlineColor: "#b4bec8", ring1: "#9696be", ring2: "#b4bec8", glow: false, glowColor: "#ffffff",
+        bigLetter: "AS",
+        name: "Arctic Silver",
+        shape: "pentagram",
+        bgTop: "#e6ebf5",
+        bgBot: "#c8d2e4",
+        bgGradientType: "linear",
+        bgGradientAngle: 90,
+        bgGradientStop: 100,
+        kTop: "#ffffff",
+        kBot: "#8c96aa",
+        kGradientType: "linear",
+        kGradientAngle: 90,
+        kGradientStop: 100,
+        nameTop: "#12163c",
+        nameBot: "#12163c",
+        nameGradientType: "linear",
+        nameGradientAngle: 90,
+        nameGradientStop: 100,
+        outlineColor: "#b4bec8",
+        ring1: "#9696be",
+        ring2: "#b4bec8",
+        ring1Width: 5,
+        ring2Width: 2,
+        ring1Gap: 29,
+        showRing1: true,
+        showRing2: true,
+        glow: true,
+        glowColor: "#ffffff",
+        glowIntensity: 0.6,
+        letterSize: 340,
+        nameSize: 60,
+        letterSpacing: 20,
+        outlineWidth: 2,
+        nameOffsetY: 0,
+        letterOffsetX: 0,
+        letterOffsetY: -20,
+        fontFamily: "Playfair Display",
+        texture: "none"
       },
       {
-        bigLetter: "FO", name: "Forest Obsidian", bgTop: "#0a1e10", bgBot: "#041008", bgGradientType: "linear", bgGradientAngle: 90, bgGradientStop: 100,
-        kTop: "#ffc828", kBot: "#b4f050", kGradientType: "linear", kGradientAngle: 90, kGradientStop: 100,
-        nameTop: "#f0f8eb", nameBot: "#f0f8eb", nameGradientType: "linear", nameGradientAngle: 90, nameGradientStop: 100,
-        outlineColor: "#061410", ring1: "#64b43c", ring2: "#3c7820", glow: true, glowColor: "#8cdc28",
+        bigLetter: "FO",
+        name: "Forest Obsidian",
+        shape: "triangle",
+        bgTop: "#0a1e10",
+        bgBot: "#041008",
+        bgGradientType: "linear",
+        bgGradientAngle: 90,
+        bgGradientStop: 100,
+        kTop: "#ffc828",
+        kBot: "#b4f050",
+        kGradientType: "linear",
+        kGradientAngle: 90,
+        kGradientStop: 100,
+        nameTop: "#f0f8eb",
+        nameBot: "#f0f8eb",
+        nameGradientType: "linear",
+        nameGradientAngle: 90,
+        nameGradientStop: 100,
+        outlineColor: "#061410",
+        ring1: "#64b43c",
+        ring2: "#3c7820",
+        ring1Width: 5,
+        ring2Width: 2,
+        ring1Gap: 18,
+        showRing1: true,
+        showRing2: true,
+        glow: true,
+        glowColor: "#8cdc28",
+        glowIntensity: 0.9,
+        letterSize: 410,
+        nameSize: 68,
+        letterSpacing: 13,
+        outlineWidth: 2,
+        nameOffsetY: 55,
+        letterOffsetX: 0,
+        letterOffsetY: -30,
+        fontFamily: "Dancing Script",
+        texture: "none"
       },
       {
-        bigLetter: "NN", name: "Neon Noir", bgTop: "#060408", bgBot: "#060408", bgGradientType: "linear", bgGradientAngle: 90, bgGradientStop: 100,
-        kTop: "#ff00b4", kBot: "#7800ff", kGradientType: "linear", kGradientAngle: 90, kGradientStop: 100,
-        nameTop: "#ff50c8", nameBot: "#ff50c8", nameGradientType: "linear", nameGradientAngle: 90, nameGradientStop: 100,
-        outlineColor: "#060408", ring1: "#c800a0", ring2: "#6400c8", glow: true, glowColor: "#ff00b4",
+        bigLetter: "NN",
+        name: "Neon Noir",
+        shape: "hexagon",
+        bgTop: "#060408",
+        bgBot: "#060408",
+        bgGradientType: "linear",
+        bgGradientAngle: 90,
+        bgGradientStop: 100,
+        kTop: "#ff00b4",
+        kBot: "#7800ff",
+        kGradientType: "linear",
+        kGradientAngle: 90,
+        kGradientStop: 100,
+        nameTop: "#ff50c8",
+        nameBot: "#ff50c8",
+        nameGradientType: "linear",
+        nameGradientAngle: 90,
+        nameGradientStop: 100,
+        outlineColor: "#060408",
+        ring1: "#c800a0",
+        ring2: "#6400c8",
+        ring1Width: 5,
+        ring2Width: 2,
+        ring1Gap: 18,
+        showRing1: true,
+        showRing2: true,
+        glow: true,
+        glowColor: "#ff00b4",
+        glowIntensity: 1.5,
+        letterSize: 340,
+        nameSize: 84,
+        letterSpacing: 28,
+        outlineWidth: 2,
+        nameOffsetY: -5,
+        letterOffsetX: 0,
+        letterOffsetY: -15,
+        fontFamily: "Cormorant Upright",
+        texture: "lines",
+        bgBottom: "#2d4bb9",
+        textColor: "#212121",
+        textStrokeColor: "#0b0e7a",
+        textStrokeWidth: 1,
+        badgeText: "LO",
+        badgeBgColor: "#311c9b",
+        badgeTextColor: "#ffffff",
+        badgePosAngle: 249,
+        badgePosRadius: 52,
+        badgeSize: 26,
+        bgType: "linear",
+        bgAngle: 107,
+        textFillType: "linear",
+        textGradientTop: "#181b20",
+        textGradientBottom: "#272f35",
+        textGradientAngle: 200,
+        badgeStrokeColor: "transparent",
+        badgeStrokeWidth: 0
       },
     ];
 
     const SHAPES = ["circle", "square", "rounded-square", "diamond", "hexagon", "triangle", "pentagram", "hexagram"];
 
+    const DEFAULT_SETTINGS = {
+      bigLetter: "E",
+      name: "EXAMPLE",
+      shape: "circle",
+      bgTop: "#160e3c",
+      bgBot: "#0a0624",
+      bgGradientType: "linear",
+      bgGradientAngle: 90,
+      bgGradientStop: 100,
+      kTop: "#ffdc50",
+      kBot: "#c88c14",
+      kGradientType: "linear",
+      kGradientAngle: 90,
+      kGradientStop: 100,
+      nameTop: "#ffc828",
+      nameBot: "#ffc828",
+      nameGradientType: "linear",
+      nameGradientAngle: 90,
+      nameGradientStop: 100,
+      outlineColor: "#100a2e",
+      ring1: "#ffc828",
+      ring2: "#643cb4",
+      ring1Width: 5,
+      ring2Width: 2,
+      ring1Gap: 18,
+      showRing1: true,
+      showRing2: true,
+      glow: true,
+      glowColor: "#ffdc50",
+      glowIntensity: 1.0,
+      letterSize: 650,
+      nameSize: 84,
+      letterSpacing: 28,
+      outlineWidth: 2,
+      nameOffsetY: 0,
+      letterOffsetX: 0,
+      letterOffsetY: 0,
+      fontFamily: "Poppins",
+      texture: "none",
+    };
+
+    // ── Utility ──
     function hexToRgb(hex) {
       const r = parseInt(hex.slice(1,3),16);
       const g = parseInt(hex.slice(3,5),16);
@@ -88,7 +376,6 @@
     function createDynamicGradient(ctx, type, angle, stop, topColor, botColor, cx, cy, rLen, gLen) {
       let grad;
       const stopRatio = Math.max(0.01, Math.min(1, stop / 100));
-
       if (type === "linear") {
         const angleRad = (angle * Math.PI) / 180;
         const gx1 = cx - Math.cos(angleRad)*gLen/2;
@@ -105,14 +392,66 @@
       return grad;
     }
 
+    function drawTexture(ctx, texture, W, H) {
+      if (texture === "none") return;
+      ctx.save();
+      if (texture === "crosshatch") {
+        ctx.strokeStyle = "rgba(255,255,255,0.055)";
+        ctx.lineWidth = 0.75;
+        const spacing = 28;
+        // diagonal lines in two directions
+        for (let i = -H; i < W + H; i += spacing) {
+          ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + H, H); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i - H, H); ctx.stroke();
+        }
+      } else if (texture === "dots") {
+        ctx.fillStyle = "rgba(255,255,255,0.045)";
+        const spacing = 22;
+        for (let y = spacing/2; y < H; y += spacing) {
+          for (let x = spacing/2; x < W; x += spacing) {
+            ctx.beginPath();
+            ctx.arc(x, y, 1.5, 0, Math.PI*2);
+            ctx.fill();
+          }
+        }
+      } else if (texture === "grid") {
+        ctx.strokeStyle = "rgba(255,255,255,0.04)";
+        ctx.lineWidth = 1;
+        const spacing = 40;
+        for (let x = 0; x < W; x += spacing) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+        }
+        for (let y = 0; y < H; y += spacing) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        }
+      } else if (texture === "lines") {
+        ctx.strokeStyle = "rgba(255,255,255,0.04)";
+        ctx.lineWidth = 1;
+        const spacing = 18;
+        for (let y = 0; y < H + W; y += spacing) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(y, 0); ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
+    function getFontString(fontFamily, weight, size) {
+      const font = FONTS.find(f => f.family === fontFamily) || FONTS[0];
+      return `${font.weight} ${size}px '${font.family}', sans-serif`;
+    }
+
     function drawMonogram(canvas, settings) {
-      const { bigLetter, name, shape,
+      const {
+        bigLetter, name, shape,
         bgTop, bgBot, bgGradientType, bgGradientAngle, bgGradientStop,
         kTop, kBot, kGradientType, kGradientAngle, kGradientStop,
         nameTop, nameBot, nameGradientType, nameGradientAngle, nameGradientStop,
-        outlineColor, ring1, ring2,
+        outlineColor, ring1, ring2, ring1Width, ring2Width, ring1Gap, showRing1, showRing2,
         glow, glowColor, glowIntensity,
-        letterSize, nameSize, letterSpacing, outlineWidth } = settings;
+        letterSize, nameSize, letterSpacing, outlineWidth, nameOffsetY,
+        letterOffsetX, letterOffsetY,
+        fontFamily, texture,
+      } = settings;
 
       const W = 700, H = 700;
       canvas.width = W; canvas.height = H;
@@ -121,27 +460,29 @@
 
       const cx = W/2, cy = H/2, R = W/2 - 16;
 
-      // ── Background shape ──
+      // Background
       ctx.save();
       clipShape(ctx, shape, cx, cy, R);
-
-      const bgGrad = createDynamicGradient(ctx, bgGradientType, bgGradientAngle, bgGradientStop, bgTop, bgBot, cx, cy, H * 0.7, H);
+      const bgGrad = createDynamicGradient(ctx, bgGradientType, bgGradientAngle, bgGradientStop, bgTop, bgBot, cx, cy, H*0.7, H);
       ctx.fillStyle = bgGrad;
       ctx.fill();
+
+      // Texture overlay (clipped inside shape)
+      drawTexture(ctx, texture, W, H);
       ctx.restore();
 
-      // ── Rings ──
-      strokeShape(ctx, shape, cx, cy, R, ring1, 5);
-      strokeShape(ctx, shape, cx, cy, R-18, ring2, 2);
+      // Rings
+      if (showRing1) strokeShape(ctx, shape, cx, cy, R, ring1, ring1Width || 5);
+      if (showRing2) strokeShape(ctx, shape, cx, cy, R - (ring1Gap || 18), ring2, ring2Width || 2);
 
-      // ── Big letter: gradient ──
-      ctx.font = `900 ${letterSize}px 'Poppins', sans-serif`;
+      // Big letter
+      const letterFont = getFontString(fontFamily, 900, letterSize);
+      ctx.font = letterFont;
       ctx.textAlign = "center";
-      
-      ctx.textBaseline = "alphabetic"; 
-      const kY = cy + (letterSize * 0.355);
+      ctx.textBaseline = "alphabetic";
+      const kX = cx + (letterOffsetX || 0);
+      const kY = cy + (letterSize * 0.355) + (letterOffsetY || 0);
 
-      // Glow pass
       if (glow) {
         const glowRgb = hexToRgb(glowColor);
         for (const [rad, alpha] of [[32,0.12],[18,0.2],[8,0.35]]) {
@@ -149,29 +490,29 @@
           ctx.shadowColor = `rgba(${glowRgb[0]},${glowRgb[1]},${glowRgb[2]},${alpha * glowIntensity})`;
           ctx.shadowBlur = rad * glowIntensity * 2;
           ctx.fillStyle = `rgba(${glowRgb[0]},${glowRgb[1]},${glowRgb[2]},0)`;
-          ctx.fillText(bigLetter, cx, kY);
+          ctx.fillText(bigLetter, kX, kY);
           ctx.restore();
         }
         ctx.save();
         ctx.shadowColor = `rgba(${glowRgb[0]},${glowRgb[1]},${glowRgb[2]},0.5)`;
         ctx.shadowBlur = 40 * glowIntensity;
         ctx.fillStyle = glowColor;
-        ctx.fillText(bigLetter, cx, kY);
+        ctx.fillText(bigLetter, kX, kY);
         ctx.restore();
       }
 
-      // Dynamic Gradient K pass
-      const kGrad = createDynamicGradient(ctx, kGradientType, kGradientAngle, kGradientStop, kTop, kBot, cx, cy, H * 0.45, H * 0.8);
+      const kGrad = createDynamicGradient(ctx, kGradientType, kGradientAngle, kGradientStop, kTop, kBot, cx, cy, H*0.45, H*0.8);
       ctx.fillStyle = kGrad;
-      ctx.fillText(bigLetter, cx, kY);
+      ctx.fillText(bigLetter, kX, kY);
 
-      // ── Name text: native outlined ──
-      ctx.font = `700 ${nameSize}px 'Poppins', sans-serif`;
+      // Name text
+      const nameFont = getFontString(fontFamily, 700, nameSize);
+      ctx.font = nameFont;
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
-      ctx.letterSpacing = `${letterSpacing}px`; 
-      
-      const nameY = cy + (nameSize * 0.355);
+      ctx.letterSpacing = `${letterSpacing}px`;
+
+      const nameY = cy + (nameSize * 0.355) + (nameOffsetY || 0);
       const nameX = cx + (letterSpacing / 2);
 
       ctx.lineJoin = "round";
@@ -179,11 +520,155 @@
       ctx.strokeStyle = outlineColor;
       ctx.strokeText(name, nameX, nameY);
 
-      const nameGrad = createDynamicGradient(ctx, nameGradientType, nameGradientAngle, nameGradientStop, nameTop, nameBot, cx, nameY, nameSize * 1.5, nameSize * 2);
+      const nameGrad = createDynamicGradient(ctx, nameGradientType, nameGradientAngle, nameGradientStop, nameTop, nameBot, cx, nameY, nameSize*1.5, nameSize*2);
       ctx.fillStyle = nameGrad;
       ctx.fillText(name, nameX, nameY);
-      
-      ctx.letterSpacing = "0px"; 
+      ctx.letterSpacing = "0px";
+    }
+
+    // ── SVG Export ──
+    function buildShapeSVGPath(shape, cx, cy, R) {
+      switch(shape) {
+        case "circle": return `M ${cx} ${cy} m -${R} 0 a ${R} ${R} 0 1 0 ${R*2} 0 a ${R} ${R} 0 1 0 -${R*2} 0`;
+        case "square": return `M ${cx-R} ${cy-R} h ${R*2} v ${R*2} h -${R*2} Z`;
+        case "rounded-square": {
+          const r = R*0.18;
+          return `M ${cx-R+r} ${cy-R} L ${cx+R-r} ${cy-R} Q ${cx+R} ${cy-R} ${cx+R} ${cy-R+r} L ${cx+R} ${cy+R-r} Q ${cx+R} ${cy+R} ${cx+R-r} ${cy+R} L ${cx-R+r} ${cy+R} Q ${cx-R} ${cy+R} ${cx-R} ${cy+R-r} L ${cx-R} ${cy-R+r} Q ${cx-R} ${cy-R} ${cx-R+r} ${cy-R} Z`;
+        }
+        case "diamond": return `M ${cx} ${cy-R} L ${cx+R} ${cy} L ${cx} ${cy+R} L ${cx-R} ${cy} Z`;
+        case "hexagon": {
+          const pts = [];
+          for (let i=0; i<6; i++) {
+            const a = (Math.PI/3)*i - Math.PI/6;
+            pts.push(`${cx+R*Math.cos(a)} ${cy+R*Math.sin(a)}`);
+          }
+          return `M ${pts.join(" L ")} Z`;
+        }
+        case "triangle": {
+          const p1 = `${cx} ${cy-R}`;
+          const p2 = `${cx+R*Math.cos(Math.PI/6)} ${cy+R*Math.sin(Math.PI/6)}`;
+          const p3 = `${cx-R*Math.cos(Math.PI/6)} ${cy+R*Math.sin(Math.PI/6)}`;
+          return `M ${p1} L ${p2} L ${p3} Z`;
+        }
+        case "pentagram": {
+          let d = "";
+          for (let i=0; i<5; i++) {
+            const a = -Math.PI/2 + i*2*Math.PI/5;
+            const px = cx+R*Math.cos(a), py = cy+R*Math.sin(a);
+            const a2 = a + Math.PI/5;
+            const r2 = R*0.382;
+            const px2 = cx+r2*Math.cos(a2), py2 = cy+r2*Math.sin(a2);
+            d += (i===0 ? `M ${px} ${py}` : ` L ${px} ${py}`) + ` L ${px2} ${py2}`;
+          }
+          return d + " Z";
+        }
+        case "hexagram": {
+          let d = "";
+          for (let i=0; i<6; i++) {
+            const a = -Math.PI/2 + i*2*Math.PI/6;
+            const px = cx+R*Math.cos(a), py = cy+R*Math.sin(a);
+            const a2 = a + Math.PI/6;
+            const r2 = R*0.577;
+            const px2 = cx+r2*Math.cos(a2), py2 = cy+r2*Math.sin(a2);
+            d += (i===0 ? `M ${px} ${py}` : ` L ${px} ${py}`) + ` L ${px2} ${py2}`;
+          }
+          return d + " Z";
+        }
+        default: return `M ${cx} ${cy} m -${R} 0 a ${R} ${R} 0 1 0 ${R*2} 0 a ${R} ${R} 0 1 0 -${R*2} 0`;
+      }
+    }
+
+    function exportSVG(settings) {
+      const {
+        bigLetter, name, shape,
+        bgTop, bgBot, bgGradientType, bgGradientAngle, bgGradientStop,
+        kTop, kBot, kGradientType, kGradientAngle, kGradientStop,
+        nameTop, nameBot,
+        outlineColor, ring1, ring2, ring1Width, ring2Width, ring1Gap, showRing1, showRing2,
+        glow, glowColor, glowIntensity,
+        letterSize, nameSize, letterSpacing, outlineWidth, nameOffsetY,
+        fontFamily,
+      } = settings;
+
+      const W = 700, H = 700, cx = 350, cy = 350, R = 334;
+      const font = FONTS.find(f => f.family === fontFamily) || FONTS[0];
+      const kY = cy + letterSize * 0.355;
+      const nameY = cy + nameSize * 0.355 + (nameOffsetY || 0);
+
+      const bgGradAngle = bgGradientAngle || 90;
+      const bgAngleRad = bgGradAngle * Math.PI / 180;
+      const kAngleRad = (kGradientType === "linear") ? ((settings.kGradientAngle || 90) * Math.PI / 180) : 0;
+      const nAngleRad = (settings.nameGradientType === "linear") ? ((settings.nameGradientAngle || 90) * Math.PI / 180) : 0;
+
+      const shapePath = buildShapeSVGPath(shape, cx, cy, R);
+      const ring2R = R - (ring1Gap || 18);
+
+      const glowFilter = glow ? `
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="${20 * glowIntensity}" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>` : "";
+
+      const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+  <defs>
+    <linearGradient id="bgGrad" gradientTransform="rotate(${bgGradAngle}, 0.5, 0.5)" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="${bgTop}"/>
+      <stop offset="${settings.bgGradientStop || 100}%" stop-color="${bgBot}"/>
+    </linearGradient>
+    <linearGradient id="kGrad" gradientTransform="rotate(${settings.kGradientAngle || 90}, 0.5, 0.5)" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="${kTop}"/>
+      <stop offset="${settings.kGradientStop || 100}%" stop-color="${kBot}"/>
+    </linearGradient>
+    <linearGradient id="nameGrad" gradientTransform="rotate(${settings.nameGradientAngle || 90}, 0.5, 0.5)" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="${nameTop}"/>
+      <stop offset="${settings.nameGradientStop || 100}%" stop-color="${nameBot}"/>
+    </linearGradient>
+    <clipPath id="shapeClip"><path d="${shapePath}"/></clipPath>
+    ${glowFilter}
+  </defs>
+
+  <!-- Background -->
+  <path d="${shapePath}" fill="url(#bgGrad)"/>
+
+  <!-- Rings -->
+  ${showRing1 ? `<path d="${shapePath}" fill="none" stroke="${ring1}" stroke-width="${ring1Width || 5}"/>` : ""}
+  ${showRing2 ? `<path d="${buildShapeSVGPath(shape, cx, cy, ring2R)}" fill="none" stroke="${ring2}" stroke-width="${ring2Width || 2}"/>` : ""}
+
+  <!-- Big Letter -->
+  <text
+    x="${cx}" y="${kY}"
+    text-anchor="middle"
+    font-family="'${font.family}', sans-serif"
+    font-size="${letterSize}"
+    font-weight="${font.weight}"
+    fill="url(#kGrad)"
+    ${glow ? `filter="url(#glow)"` : ""}
+    clip-path="url(#shapeClip)"
+  >${bigLetter}</text>
+
+  <!-- Name Text -->
+  <text
+    x="${cx + letterSpacing/2}" y="${nameY}"
+    text-anchor="middle"
+    font-family="'${font.family}', sans-serif"
+    font-size="${nameSize}"
+    font-weight="${font.weight}"
+    letter-spacing="${letterSpacing}"
+    stroke="${outlineColor}"
+    stroke-width="${outlineWidth * 2}"
+    stroke-linejoin="round"
+    fill="url(#nameGrad)"
+    clip-path="url(#shapeClip)"
+  >${name}</text>
+</svg>`;
+
+      const blob = new Blob([svgContent], { type: "image/svg+xml" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = `monogram_${settings.bigLetter || 'logo'}_${settings.name || 'design'}.svg`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
     }
 
     function clipShape(ctx, shape, cx, cy, R) {
@@ -204,74 +689,81 @@
 
     function buildShapePath(ctx, shape, cx, cy, R) {
       switch(shape) {
-        case "circle":
-          ctx.arc(cx, cy, R, 0, Math.PI*2);
-          break;
-        case "square":
-          ctx.rect(cx-R, cy-R, R*2, R*2);
-          break;
+        case "circle": ctx.arc(cx, cy, R, 0, Math.PI*2); break;
+        case "square": ctx.rect(cx-R, cy-R, R*2, R*2); break;
         case "rounded-square": {
           const r = R*0.18;
-          ctx.moveTo(cx-R+r, cy-R);
-          ctx.lineTo(cx+R-r, cy-R);
-          ctx.arcTo(cx+R, cy-R, cx+R, cy-R+r, r);
-          ctx.lineTo(cx+R, cy+R-r);
-          ctx.arcTo(cx+R, cy+R, cx+R-r, cy+R, r);
-          ctx.lineTo(cx-R+r, cy+R);
-          ctx.arcTo(cx-R, cy+R, cx-R, cy+R-r, r);
-          ctx.lineTo(cx-R, cy-R+r);
-          ctx.arcTo(cx-R, cy-R, cx-R+r, cy-R, r);
-          ctx.closePath();
-          break;
+          ctx.moveTo(cx-R+r, cy-R); ctx.lineTo(cx+R-r, cy-R); ctx.arcTo(cx+R, cy-R, cx+R, cy-R+r, r);
+          ctx.lineTo(cx+R, cy+R-r); ctx.arcTo(cx+R, cy+R, cx+R-r, cy+R, r);
+          ctx.lineTo(cx-R+r, cy+R); ctx.arcTo(cx-R, cy+R, cx-R, cy+R-r, r);
+          ctx.lineTo(cx-R, cy-R+r); ctx.arcTo(cx-R, cy-R, cx-R+r, cy-R, r); ctx.closePath(); break;
         }
-        case "diamond":
-          ctx.moveTo(cx, cy-R);
-          ctx.lineTo(cx+R, cy);
-          ctx.lineTo(cx, cy+R);
-          ctx.lineTo(cx-R, cy);
-          ctx.closePath();
-          break;
+        case "diamond": ctx.moveTo(cx, cy-R); ctx.lineTo(cx+R, cy); ctx.lineTo(cx, cy+R); ctx.lineTo(cx-R, cy); ctx.closePath(); break;
         case "hexagon": {
-          for (let i=0; i<6; i++) {
-            const a = (Math.PI/3)*i - Math.PI/6;
-            const px = cx + R*Math.cos(a), py = cy + R*Math.sin(a);
-            i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
-          }
-          ctx.closePath();
-          break;
+          for (let i=0; i<6; i++) { const a=(Math.PI/3)*i-Math.PI/6, px=cx+R*Math.cos(a), py=cy+R*Math.sin(a); i===0?ctx.moveTo(px,py):ctx.lineTo(px,py); }
+          ctx.closePath(); break;
         }
-        case "triangle":
-          ctx.moveTo(cx, cy-R);
-          ctx.lineTo(cx + R*Math.cos(Math.PI/6), cy + R*Math.sin(Math.PI/6));
-          ctx.lineTo(cx - R*Math.cos(Math.PI/6), cy + R*Math.sin(Math.PI/6));
-          ctx.closePath();
-          break;
+        case "triangle": ctx.moveTo(cx, cy-R); ctx.lineTo(cx+R*Math.cos(Math.PI/6), cy+R*Math.sin(Math.PI/6)); ctx.lineTo(cx-R*Math.cos(Math.PI/6), cy+R*Math.sin(Math.PI/6)); ctx.closePath(); break;
         case "pentagram": {
           for (let i=0; i<5; i++) {
-            const a = -Math.PI/2 + (i * 2 * Math.PI / 5);
-            const px = cx + R*Math.cos(a), py = cy + R*Math.sin(a);
-            i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
-            const a2 = a + Math.PI / 5;
-            const r2 = R * 0.382;
-            ctx.lineTo(cx + r2*Math.cos(a2), cy + r2*Math.sin(a2));
+            const a=-Math.PI/2+(i*2*Math.PI/5), px=cx+R*Math.cos(a), py=cy+R*Math.sin(a);
+            i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+            const a2=a+Math.PI/5, r2=R*0.382; ctx.lineTo(cx+r2*Math.cos(a2), cy+r2*Math.sin(a2));
           }
-          ctx.closePath();
-          break;
+          ctx.closePath(); break;
         }
         case "hexagram": {
           for (let i=0; i<6; i++) {
-            const a = -Math.PI/2 + (i * 2 * Math.PI / 6);
-            const px = cx + R*Math.cos(a), py = cy + R*Math.sin(a);
-            i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
-            const a2 = a + Math.PI / 6;
-            const r2 = R * 0.577;
-            ctx.lineTo(cx + r2*Math.cos(a2), cy + r2*Math.sin(a2));
+            const a=-Math.PI/2+(i*2*Math.PI/6), px=cx+R*Math.cos(a), py=cy+R*Math.sin(a);
+            i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+            const a2=a+Math.PI/6, r2=R*0.577; ctx.lineTo(cx+r2*Math.cos(a2), cy+r2*Math.sin(a2));
           }
-          ctx.closePath();
-          break;
+          ctx.closePath(); break;
         }
       }
     }
+
+    // ── Preset thumbnail renderer ──
+    function PresetThumb({ preset, active, onClick, fontLoaded }) {
+      const canvasRef = useRef(null);
+      useEffect(() => {
+        // Only draw once the main app confirms fonts are loaded
+        if (!canvasRef.current || !fontLoaded) return; 
+        const canvas = canvasRef.current;
+        drawMonogram(canvas, { ...DEFAULT_SETTINGS, ...preset });
+      }, [preset, fontLoaded]); // Add fontLoaded as a dependency
+      return (
+        <button
+          className={`preset-btn ${active ? "active" : ""}`}
+          onClick={onClick}
+          aria-label={`Apply preset: ${preset.name}`}
+          title={preset.name}
+        >
+          <canvas ref={canvasRef} className="preset-thumb" />
+          <span className="preset-name">{preset.name}</span>
+        </button>
+      );
+    }
+
+    // ── URL share encode/decode ──
+    function encodeSettings(s) {
+      try { return btoa(unescape(encodeURIComponent(JSON.stringify(s)))); } catch { return null; }
+    }
+    function decodeSettings(str) {
+      try { return JSON.parse(decodeURIComponent(escape(atob(str)))); } catch { return null; }
+    }
+
+    // ── HSL-to-HEX ──
+    const hslToHex = (h, s, l) => {
+      l /= 100;
+      const a = s * Math.min(l, 1 - l) / 100;
+      const f = n => {
+        const k = (n + h / 30) % 12;
+        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * color).toString(16).padStart(2, '0');
+      };
+      return `#${f(0)}${f(8)}${f(4)}`;
+    };
 
     // ── UI Components ──
     function ColorRow({ label, value, onChange }) {
@@ -279,21 +771,23 @@
         <div className="control-row">
           <label>{label}</label>
           <div className="color-input-wrap">
-            <input type="color" value={value} onChange={e=>onChange(e.target.value)} />
-            <span className="hex-label">{value}</span>
+            <input type="color" value={value} onChange={e=>onChange(e.target.value)} aria-label={label} />
+            <span className="hex-label" aria-hidden="true">{value}</span>
           </div>
         </div>
       );
     }
 
     function SliderRow({ label, value, min, max, step=1, onChange, unit="" }) {
+      const id = `slider-${label.replace(/\s+/g,"-").toLowerCase()}`;
       return (
         <div className="control-row">
-          <label>{label}</label>
+          <label htmlFor={id}>{label}</label>
           <div className="slider-wrap">
-            <input type="range" min={min} max={max} step={step} value={value}
-              onChange={e=>onChange(Number(e.target.value))} />
-            <span className="val-label">{value}{unit}</span>
+            <input id={id} type="range" min={min} max={max} step={step} value={value}
+              onChange={e=>onChange(Number(e.target.value))}
+              aria-label={`${label}: ${value}${unit}`} />
+            <span className="val-label" aria-hidden="true">{value}{unit}</span>
           </div>
         </div>
       );
@@ -303,37 +797,100 @@
       const canvasRef = useRef(null);
       const [tab, setTab] = useState("design");
       const [fontLoaded, setFontLoaded] = useState(false);
+      const [shareToast, setShareToast] = useState(false);
+      const [importError, setImportError] = useState(null);
+      const [importSuccess, setImportSuccess] = useState(false);
 
-      const [settings, setSettings] = useState({
-        bigLetter: "E", name: "EXAMPLE", shape: "circle",
-        bgTop: "#160e3c", bgBot: "#0a0624", bgGradientType: "linear", bgGradientAngle: 90, bgGradientStop: 100,
-        kTop: "#ffdc50", kBot: "#c88c14", kGradientType: "linear", kGradientAngle: 90, kGradientStop: 100,
-        nameTop: "#ffc828", nameBot: "#ffc828", nameGradientType: "linear", nameGradientAngle: 90, nameGradientStop: 100,
-        outlineColor: "#100a2e", ring1: "#ffc828", ring2: "#643cb4",
-        glow: true, glowColor: "#ffdc50", glowIntensity: 1.0,
-        letterSize: 650, nameSize: 84, letterSpacing: 28, outlineWidth: 2, 
-      });
+      // ── Load from URL hash or localStorage ──
+      const getInitialSettings = () => {
+        // URL hash takes priority
+        const hash = window.location.hash.slice(1);
+        if (hash.startsWith("config=")) {
+          const decoded = decodeSettings(hash.slice(7));
+          if (decoded && decoded.bgTop) return { ...DEFAULT_SETTINGS, ...decoded };
+        }
+        // Then localStorage
+        try {
+          const saved = localStorage.getItem("monogram-studio-settings");
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed.bgTop) return { ...DEFAULT_SETTINGS, ...parsed };
+          }
+        } catch {}
+        return DEFAULT_SETTINGS;
+      };
 
-      const set = useCallback((key, val) => setSettings(s => ({ ...s, [key]: val })), []);
+      const [settings, setSettings] = useState(getInitialSettings);
 
-      // Force canvas to wait for exact weights defined in ctx.font
+      // ── Undo/redo history ──
+      const historyRef = useRef([settings]);
+      const historyIndexRef = useRef(0);
+
+      const set = useCallback((key, val) => {
+        setSettings(s => {
+          const next = { ...s, [key]: val };
+          // Trim forward history on new change
+          historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
+          historyRef.current.push(next);
+          if (historyRef.current.length > 100) historyRef.current.shift();
+          historyIndexRef.current = historyRef.current.length - 1;
+          return next;
+        });
+      }, []);
+
+      const undo = useCallback(() => {
+        if (historyIndexRef.current > 0) {
+          historyIndexRef.current--;
+          setSettings(historyRef.current[historyIndexRef.current]);
+        }
+      }, []);
+
+      const redo = useCallback(() => {
+        if (historyIndexRef.current < historyRef.current.length - 1) {
+          historyIndexRef.current++;
+          setSettings(historyRef.current[historyIndexRef.current]);
+        }
+      }, []);
+
+      // Keyboard shortcuts for undo/redo
       useEffect(() => {
+        const handler = (e) => {
+          if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
+          if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) { e.preventDefault(); redo(); }
+        };
+        window.addEventListener("keydown", handler);
+        return () => window.removeEventListener("keydown", handler);
+      }, [undo, redo]);
+
+      // ── Auto-save to localStorage ──
+      useEffect(() => {
+        try { localStorage.setItem("monogram-studio-settings", JSON.stringify(settings)); } catch {}
+      }, [settings]);
+
+      // ── Font loading ──
+      useEffect(() => {
+        const fontsToLoad = FONTS.map(f => document.fonts.load(`${f.weight} 10px '${f.family}'`));
         document.fonts.ready.then(() => {
-          Promise.all([
-            document.fonts.load("900 10px Poppins"),
-            document.fonts.load("700 10px Poppins")
-          ]).then(() => setFontLoaded(true))
-            .catch(() => setFontLoaded(true)); 
+          Promise.all(fontsToLoad).then(() => setFontLoaded(true)).catch(() => setFontLoaded(true));
         });
       }, []);
 
       const debouncedSettings = useDebounce(settings, 0);
 
-      // Draw only when font is ready
       useEffect(() => {
         if (!fontLoaded || !canvasRef.current) return;
         drawMonogram(canvasRef.current, debouncedSettings);
       }, [debouncedSettings, fontLoaded]);
+
+      const applyPreset = useCallback((preset) => {
+        setSettings(s => {
+          const next = { ...s, ...preset };
+          historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
+          historyRef.current.push(next);
+          historyIndexRef.current = historyRef.current.length - 1;
+          return next;
+        });
+      }, []);
 
       const downloadPNG = () => {
         const canvas = canvasRef.current;
@@ -343,11 +900,21 @@
         link.click();
       };
 
-      const applyPreset = (preset) => setSettings(s => ({ ...s, ...preset }));
+      const downloadSVG = () => exportSVG(settings);
 
-      const [importError, setImportError] = useState(null);
-      const [importSuccess, setImportSuccess] = useState(false);
-      const importFileRef = useRef(null);
+      const shareURL = () => {
+        const encoded = encodeSettings(settings);
+        if (!encoded) return;
+        const url = `${window.location.href.split("#")[0]}#config=${encoded}`;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(url).then(() => {
+            setShareToast(true);
+            setTimeout(() => setShareToast(false), 2500);
+          });
+        } else {
+          window.prompt("Copy this link:", url);
+        }
+      };
 
       const exportJSON = () => {
         const json = JSON.stringify(settings, null, 2);
@@ -363,28 +930,131 @@
       const importJSON = (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        setImportError(null);
-        setImportSuccess(false);
+        setImportError(null); setImportSuccess(false);
         const reader = new FileReader();
         reader.onload = (ev) => {
           try {
             const parsed = JSON.parse(ev.target.result);
-            // Validate it has at least some expected keys
-            if (parsed.bgTop === undefined) {
-              setImportError("Invalid design file — doesn't look like a Monogram Studio export.");
-              return;
-            }
-            setSettings(s => ({ ...s, ...parsed }));
+            if (parsed.bgTop === undefined) { setImportError("Invalid design file — doesn't look like a Monogram Studio export."); return; }
+            setSettings(s => { const next = { ...s, ...parsed }; historyRef.current.push(next); historyIndexRef.current = historyRef.current.length - 1; return next; });
             setImportSuccess(true);
             setTimeout(() => setImportSuccess(false), 3000);
-          } catch {
-            setImportError("Could not parse file. Make sure it's a valid JSON export.");
-          }
+          } catch { setImportError("Could not parse file. Make sure it's a valid JSON export."); }
         };
         reader.readAsText(file);
-        // Reset input so the same file can be re-imported
         e.target.value = "";
       };
+
+      const handleRandomize = () => {
+        // 1. Core color harmony generator (HSL style)
+        const baseHue = Math.floor(Math.random() * 360);
+        const themeRoll = Math.random();
+        
+        let getThemeHue;
+        if (themeRoll < 0.45) {
+          // Analogous: Colors right next to each other
+          getThemeHue = () => (baseHue + (Math.random() * 40 - 20) + 360) % 360;
+        } else if (themeRoll < 0.80) {
+          // Complementary: High-contrast opposite pairings
+          getThemeHue = () => Math.random() > 0.5 ? baseHue : (baseHue + 180) % 360;
+        } else {
+          // Monochromatic: Single hue variations
+          getThemeHue = () => baseHue;
+        }
+
+        // Generate a cohesive background palette (usually mid-to-dark for standard contrast)
+        const bgL = Math.floor(Math.random() * 30) + 15; // 15% - 45% luminosity
+        const bgTopHex = hslToHex(getThemeHue(), Math.floor(Math.random() * 20) + 40, bgL);
+        const bgBotHex = hslToHex(getThemeHue(), Math.floor(Math.random() * 20) + 30, Math.max(8, bgL - 10));
+
+        // Accent color generator for high visibility rings or text elements
+        const genAccentColor = (lightness = 65) => {
+          return hslToHex((getThemeHue() + (Math.random() > 0.5 ? 30 : -30) + 360) % 360, Math.floor(Math.random() * 30) + 65, lightness);
+        };
+
+        // 2. Lower Badge Name configuration keys (Now with rich colors and smoother contrast)
+        const nameHue = (getThemeHue() + (Math.random() * 40 - 20) + 360) % 360; // Loosely matches or slightly drifts from the theme
+        const nameSat = Math.floor(Math.random() * 45) + 45;                     // 45% to 90% saturation for real color punch
+        const nameLightTop = Math.floor(Math.random() * 25) + 55;                // 55% to 80% lightness (rich color space instead of pure white)
+        const nameLightBot = Math.max(35, nameLightTop - Math.floor(Math.random() * 15) - 5); // Subtle gradient drop
+
+        const nameTopHex = hslToHex(nameHue, nameSat, nameLightTop);
+        const nameBotHex = hslToHex(nameHue, nameSat, nameLightBot);
+
+        // Select randomly from your actual app lists
+
+        const fontChoices = ["Poppins", "Playfair Display", "Bebas Neue", "Cinzel", "Dancing Script", "Space Mono", "Cormorant Upright", "Abril Fatface"];
+        const shapeChoices = ["circle", "square", "rounded-square", "diamond", "hexagon", "triangle", "pentagram", "hexagram"];
+        const textureChoices = ["none", "crosshatch", "dots", "grid", "lines"];
+
+        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const randomChar = () => alphabet[Math.floor(Math.random() * alphabet.length)];
+
+        // 3. Formulate the exact schema matching DEFAULT_SETTINGS & PRESETS
+        const randomizedMatrix = {
+          bigLetter: randomChar() + (Math.random() > 0.65 ? randomChar() : ""), // 1 or 2 letters
+          name: (randomChar() + randomChar() + randomChar() + randomChar() + "STUDIO").toUpperCase(),
+          fontFamily: fontChoices[Math.floor(Math.random() * fontChoices.length)],
+          shape: shapeChoices[Math.floor(Math.random() * shapeChoices.length)],
+          texture: textureChoices[Math.floor(Math.random() * textureChoices.length)],
+
+          // Canvas Background Configuration keys
+          bgTop: bgTopHex,
+          bgBot: bgBotHex,
+          bgGradientType: Math.random() > 0.25 ? "linear" : "radial",
+          bgGradientAngle: Math.floor(Math.random() * 360),
+          bgGradientStop: Math.floor(Math.random() * 40) + 60, // 60% to 100%
+
+          // Big Monogram Letter configuration keys
+          kTop: genAccentColor(75),
+          kBot: genAccentColor(45),
+          kGradientType: Math.random() > 0.3 ? "linear" : "radial",
+          kGradientAngle: Math.floor(Math.random() * 360),
+          kGradientStop: Math.floor(Math.random() * 30) + 70,
+
+          // Lower Badge Name configuration keys
+          nameTop: nameTopHex,
+          nameBot: nameBotHex,
+          nameGradientType: "linear",
+          nameGradientAngle: 90,
+          nameGradientStop: Math.floor(Math.random() * 30) + 40,
+
+          // Outer Structural Outline/Stroke Rules
+          outlineColor: bgBotHex,
+          outlineWidth: Math.floor(Math.random() * 3) + 1, // 1px to 3px
+
+          // Inner & Outer Ring Configurations
+          showRing1: Math.random() > 0.15,
+          ring1: genAccentColor(60),
+          ring1Width: Math.floor(Math.random() * 5) + 2, // 2px to 6px
+          ring1Gap: Math.floor(Math.random() * 16) + 12, // 12px to 28px
+
+          showRing2: Math.random() > 0.3,
+          ring2: genAccentColor(50),
+          ring2Width: Math.floor(Math.random() * 3) + 1, // 1px to 3px
+
+          // Glow engine keys
+          glow: Math.random() > 0.4,
+          glowColor: genAccentColor(70),
+          glowIntensity: parseFloat((Math.random() * 0.9 + 0.6).toFixed(2)), // 0.6 to 1.5 scale
+        };
+
+        // 4. Update state while committing accurately to your history engine stack
+        setSettings(current => {
+          const nextSettings = { ...current, ...randomizedMatrix };
+          
+          // Wipe forward history steps and commit new snapshot
+          historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
+          historyRef.current.push(nextSettings);
+          if (historyRef.current.length > 100) historyRef.current.shift();
+          historyIndexRef.current = historyRef.current.length - 1;
+          
+          return nextSettings;
+        });
+      };
+
+      const canUndo = historyIndexRef.current > 0;
+      const canRedo = historyIndexRef.current < historyRef.current.length - 1;
 
       return (
         <>
@@ -395,52 +1065,61 @@
 
             /* ── Layout ── */
             .app { display: grid; grid-template-columns: 1fr 380px; grid-template-rows: 85px 1fr; height: 100vh; max-width: 1200px; margin: 0 auto; overflow: hidden; }
-            
-            .header { grid-column: 1; grid-row: 1; height: 85px; padding: 0 32px; display: flex; align-items: baseline; padding-top: 26px; gap: 16px; border-bottom: 1px solid rgba(255,255,255,0.06); box-sizing: border-box; position: relative; }
+            .header { grid-column: 1; grid-row: 1; height: 85px; padding: 0 32px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid rgba(255,255,255,0.06); box-sizing: border-box; position: relative; }
             .header h1 { font-size: 22px; font-weight: 700; letter-spacing: 0.08em; background: linear-gradient(120deg, #ffc828, #c87eff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-            .header span { font-size: 12px; color: rgba(255,255,255,0.3); letter-spacing: 0.15em; text-transform: uppercase; }
+            .header-sub { font-size: 12px; color: rgba(255,255,255,0.3); letter-spacing: 0.15em; text-transform: uppercase; }
+            .header-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+            .undo-redo { display: flex; gap: 4px; }
+            .icon-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.55); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; -webkit-tap-highlight-color: transparent; }
+            .icon-btn:hover:not(:disabled) { background: rgba(255,255,255,0.1); color: #fff; }
+            .icon-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+            .icon-btn:focus-visible { outline: 2px solid #ffc828; outline-offset: 2px; }
 
-            /* ── Ko-fi Support Links ── */
-            
-
-            .kofi-desktop { position: absolute; right: 32px; top: 50%; transform: translateY(-50%); height: 80px; transition: transform 0.15s; display: block; }
-            .kofi-desktop:hover { transform: translateY(-50%) scale(1.05); }
+            .kofi-desktop { height: 60px; transition: transform 0.15s; display: block; }
+            .kofi-desktop:hover { transform: scale(1.05); }
             .kofi-desktop img { height: 100%; width: auto; display: block; }
-
             .kofi-mobile { display: none; justify-content: center; margin-top: auto; padding-top: 20px; padding-bottom: 10px; width: 100%; transition: transform 0.15s; }
             .kofi-mobile:hover { transform: scale(1.02); }
             .kofi-mobile img { height: 90px; width: auto; display: block; }
 
             /* ── Canvas area ── */
             .canvas-area { grid-column: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; gap: 20px; background: radial-gradient(ellipse at 50% 40%, rgba(100,60,200,0.08) 0%, transparent 70%); }
-            .canvas-row { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 40px; width: 100%; max-width: 800px; }
-            .canvas-wrap { position: relative; width: 100%; max-width: 440px; aspect-ratio: 1; border-radius: 20px; overflow: hidden; background: repeating-conic-gradient(rgba(255,255,255,0.04) 0% 25%, transparent 0% 50%) 0 0 / 20px 20px; box-shadow: 0 0 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06); }
+            .canvas-row { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 40px; width: 100%; max-width: 670px; }
+            .canvas-wrap { position: relative; width: 100%; max-width: 670px; aspect-ratio: 1; border-radius: 20px; overflow: hidden; background: repeating-conic-gradient(rgba(255,255,255,0.04) 0% 25%, transparent 0% 50%) 0 0 / 20px 20px; box-shadow: 0 0 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06); }
             canvas { width: 100%; height: 100%; display: block; touch-action: none; }
-            .canvas-sidebar { display: flex; flex-direction: column; width: 150px; flex-shrink: 0; gap: 24px; }
-            .canvas-actions { display: flex; gap: 12px; }
-            
-            /* Presets Label (Hidden on Desktop) */
+            /* Sidebar stacks presets list, then a gap, then the action buttons */
+            .canvas-sidebar { display: flex; flex-direction: column; width: 180px; flex-shrink: 0; gap: 22px; }
             .presets-label { display: none; }
 
+            /* ── Preset thumbnails ── */
+            .presets { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+            .preset-btn { display: flex; align-items: center; gap: 9px; padding: 5px 8px 5px 5px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.6); font-family: 'Poppins', sans-serif; font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.15s; letter-spacing: 0.04em; -webkit-tap-highlight-color: transparent; touch-action: manipulation; text-align: left; }
+            .preset-btn:hover { background: rgba(255,200,40,0.12); border-color: rgba(255,200,40,0.35); color: #ffc828; }
+            .preset-btn.active { background: rgba(255,200,40,0.18); border-color: rgba(255,200,40,0.55); color: #ffc828; }
+            .preset-btn:focus-visible { outline: 2px solid #ffc828; outline-offset: 2px; }
+            .preset-thumb { width: 30px; height: 30px; border-radius: 6px; display: block; flex-shrink: 0; }
+            .preset-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+            /* ── Canvas actions (inside .canvas-sidebar on desktop) ── */
+            .canvas-actions { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+
             /* ── Buttons ── */
-            .btn { padding: 10px 24px; border-radius: 8px; border: none; font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; cursor: pointer; transition: all 0.15s; -webkit-tap-highlight-color: transparent; touch-action: manipulation; width: 100%; }
+            .btn { padding: 10px 16px; border-radius: 8px; border: none; font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; cursor: pointer; transition: all 0.15s; -webkit-tap-highlight-color: transparent; touch-action: manipulation; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; }
+            .btn:focus-visible { outline: 2px solid #ffc828; outline-offset: 2px; }
             .btn-primary { background: linear-gradient(135deg, #ffc828, #ff8c28); color: #1a0800; }
             .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(255,180,0,0.4); }
-            .btn-secondary { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.12); }
-            .btn-secondary:hover { background: rgba(255,255,255,0.12); }
-
-            /* ── Presets ── */
-            .presets { display: flex; flex-direction: column; gap: 10px; width: 100%; }
-            .preset-btn { padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.65); font-family: 'Poppins', sans-serif; font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.15s; letter-spacing: 0.04em; -webkit-tap-highlight-color: transparent; touch-action: manipulation; text-align: center; }
-            .preset-btn:hover { background: rgba(255,200,40,0.15); border-color: rgba(255,200,40,0.4); color: #ffc828; }
+            .btn-secondary { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.65); border: 1px solid rgba(255,255,255,0.1); }
+            .btn-secondary:hover { background: rgba(255,255,255,0.12); color: #fff; }
+            .btn-share { background: rgba(100,60,200,0.2); color: rgba(180,140,255,0.9); border: 1px solid rgba(100,60,200,0.35); }
+            .btn-share:hover { background: rgba(100,60,200,0.35); color: #c87eff; }
 
             /* ── Panel ── */
             .panel { grid-column: 2; grid-row: 1 / 3; background: #120f1e; border-left: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; overflow: hidden; height: 100%; }
-            
-            .tabs { display: flex; height: 85px; border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; }
-            .tab { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; color: rgba(255,255,255,0.3); transition: all 0.15s; border: none; border-bottom: 2px solid transparent; background: none; font-family: 'Poppins', sans-serif; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+            .tabs { display: flex; height: 58px; border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; }
+            .tab { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; color: rgba(255,255,255,0.3); transition: all 0.15s; border: none; border-bottom: 2px solid transparent; background: none; font-family: 'Poppins', sans-serif; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
             .tab.active { color: #ffc828; border-bottom-color: #ffc828; }
             .tab:hover:not(.active) { color: rgba(255,255,255,0.6); }
+            .tab:focus-visible { outline: 2px solid #ffc828; outline-offset: -2px; }
             .panel-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px; display: flex; flex-direction: column; gap: 20px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; }
 
             /* ── Controls ── */
@@ -450,23 +1129,37 @@
             .control-row label { font-size: 12px; color: rgba(255,255,255,0.55); white-space: nowrap; min-width: 100px; }
             .text-input { flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 8px 10px; color: #e8e0ff; font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; outline: none; transition: border-color 0.15s; text-transform: uppercase; min-height: 40px; }
             .text-input:focus { border-color: rgba(255,200,40,0.5); }
+            .text-input:focus-visible { outline: 2px solid #ffc828; outline-offset: 1px; }
             .color-input-wrap { display: flex; align-items: center; gap: 8px; }
             input[type=color] { width: 40px; height: 34px; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; background: none; cursor: pointer; padding: 2px; }
+            input[type=color]:focus-visible { outline: 2px solid #ffc828; outline-offset: 2px; }
             .hex-label { font-family: 'DM Mono', monospace; font-size: 11px; color: rgba(255,255,255,0.35); min-width: 54px; }
             .slider-wrap { display: flex; align-items: center; gap: 10px; flex: 1; }
             input[type=range] { flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.12); outline: none; cursor: pointer; }
             input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #ffc828; cursor: pointer; box-shadow: 0 0 6px rgba(255,200,40,0.5); }
             input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #ffc828; cursor: pointer; border: none; box-shadow: 0 0 6px rgba(255,200,40,0.5); }
+            input[type=range]:focus-visible { outline: 2px solid #ffc828; outline-offset: 4px; border-radius: 4px; }
             .val-label { font-family: 'DM Mono', monospace; font-size: 11px; color: rgba(255,255,255,0.4); min-width: 36px; text-align: right; }
             .shape-picker { display: flex; gap: 6px; flex-wrap: wrap; }
             .shape-btn { padding: 7px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.5); font-family: 'Poppins', sans-serif; font-size: 11px; cursor: pointer; transition: all 0.15s; text-transform: capitalize; -webkit-tap-highlight-color: transparent; touch-action: manipulation; min-height: 34px; }
             .shape-btn.active { background: rgba(255,200,40,0.15); border-color: rgba(255,200,40,0.5); color: #ffc828; }
+            .shape-btn:focus-visible { outline: 2px solid #ffc828; outline-offset: 2px; }
             .toggle-row { display: flex; align-items: center; justify-content: space-between; min-height: 36px; }
             .toggle-row label { font-size: 12px; color: rgba(255,255,255,0.55); }
             .toggle { width: 44px; height: 24px; background: rgba(255,255,255,0.1); border-radius: 12px; border: none; cursor: pointer; position: relative; transition: background 0.2s; -webkit-tap-highlight-color: transparent; touch-action: manipulation; flex-shrink: 0; }
             .toggle.on { background: #ffc828; }
             .toggle::after { content:''; position: absolute; width: 18px; height: 18px; border-radius: 50%; background: white; top: 3px; left: 3px; transition: transform 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
             .toggle.on::after { transform: translateX(20px); }
+            .toggle:focus-visible { outline: 2px solid #ffc828; outline-offset: 3px; }
+
+            /* ── Font picker ── */
+            .font-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+            .font-btn { padding: 10px 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.6); cursor: pointer; transition: all 0.15s; text-align: center; font-size: 13px; line-height: 1.2; -webkit-tap-highlight-color: transparent; }
+            .font-btn .font-preview { font-size: 18px; display: block; margin-bottom: 3px; }
+            .font-btn .font-label { font-family: 'DM Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.6; display: block; }
+            .font-btn.active { background: rgba(255,200,40,0.15); border-color: rgba(255,200,40,0.5); color: #ffc828; }
+            .font-btn:hover:not(.active) { background: rgba(255,255,255,0.08); }
+            .font-btn:focus-visible { outline: 2px solid #ffc828; outline-offset: 2px; }
 
             /* ── Export tab ── */
             .export-wrap { display: flex; flex-direction: column; gap: 20px; }
@@ -479,131 +1172,260 @@
             .export-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 2px 0; }
             .import-error { font-size: 11px; color: #ff7070; background: rgba(255,80,80,0.08); border: 1px solid rgba(255,80,80,0.18); border-radius: 7px; padding: 8px 12px; line-height: 1.5; }
             .import-success { font-size: 11px; color: #7effa0; background: rgba(80,255,120,0.08); border: 1px solid rgba(80,255,120,0.2); border-radius: 7px; padding: 8px 12px; }
-            .json-preview { background: #0a0812; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px; font-family: 'DM Mono', monospace; font-size: 10px; line-height: 1.65; color: rgba(160,224,128,0.75); white-space: pre; overflow-x: auto; overflow-y: auto; max-height: 260px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent; }
+            .json-preview { background: #0a0812; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px; font-family: 'DM Mono', monospace; font-size: 10px; line-height: 1.65; color: rgba(160,224,128,0.75); white-space: pre; overflow-x: auto; overflow-y: auto; max-height: 220px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent; }
 
-            /* ── Mobile layout (≤ 768px) ── */
+            /* ── Share toast ── */
+            .share-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(20,15,36,0.95); border: 1px solid rgba(255,200,40,0.4); color: #ffc828; font-size: 13px; font-weight: 600; padding: 12px 22px; border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); z-index: 100; pointer-events: none; animation: toastIn 0.2s ease; }
+            @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+            /* ── Desktop only default ── */
+            .mobile-presets-wrap{
+                display:none;
+            }
+
+            /* ── Mobile ── */
             @media (max-width: 768px) {
               body { height: 100dvh; overflow: hidden; }
               .app { display: flex; flex-direction: column; height: 100dvh; min-height: 100dvh; overflow: hidden; }
-              
-              .header { padding: 12px 14px 10px; height: auto; gap: 10px; flex-shrink: 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
-              .header h1 { font-size: 17px; margin-top: 0; }
-              .header span { font-size: 10px; }
-              
+              .header { padding: 10px 14px; height: auto; gap: 8px; flex-shrink: 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+              .header h1 { font-size: 16px; }
+              .header-sub { display: none; }
+              .header-actions { gap: 6px; }
               .kofi-desktop { display: none; }
               .kofi-mobile { display: flex; }
-              
-              .canvas-area { padding: 10px 12px; gap: 0; background: #0c0a14; flex-shrink: 0; }
-              .canvas-row { flex-direction: row-reverse; align-items: stretch; gap: 10px; max-width: 100%; height: 160px; }
-              .canvas-wrap { width: auto; flex: 0 0 160px; height: 160px; max-width: 160px; border-radius: 12px; margin: 0; }
-              
-              .canvas-sidebar { display: flex; flex-direction: column; justify-content: space-between; flex: 1; gap: 4px; min-width: 0; }
-              
-              .presets-label { display: block; font-size: 10px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 2px; }
-              
-              .presets { 
-                display: grid; 
-                grid-template-columns: 1fr 1fr; 
-                gap: 6px; 
-                justify-content: flex-start; 
-                align-content: start;
-                max-width: none; 
-                overflow-y: auto; 
-                flex: 1; 
-                min-height: 0; 
-              }
-              
-              .preset-btn { min-height: 24px; padding: 0 6px; display: flex; align-items: center; font-size: 9px; border-radius: 6px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1; }
-              
-              .canvas-actions { margin-top: auto; flex-shrink: 0; }
-              .canvas-actions .btn { width: 100%; padding: 9px 10px; font-size: 11px; text-align: center; }
-              
+              .canvas-area { padding: 14px 12px 12px; gap: 10px; background: #0c0a14; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
+
+              /* Mobile layout: centered preview, action buttons as horizontal row below.
+                 .canvas-sidebar dissolves via display:contents so .canvas-actions
+                 becomes a direct child of .canvas-row; its desktop presets bits are
+                 hidden (mobile presets render inside .panel-content instead). */
+              .canvas-row { flex-direction: column; flex-wrap: nowrap; align-items: center; gap: 10px; max-width: 100%; height: auto; width: 100%; }
+              .canvas-sidebar { display: contents; }
+              .canvas-sidebar > .presets-label,
+              .canvas-sidebar > .presets { display: none; }
+              .canvas-wrap { width: 100%; max-width: 100%; height: auto; flex: none; aspect-ratio: 1 / 1; border-radius: 16px; margin: 0; order: 1; }
+              .canvas-actions { display: flex; flex-direction: row; gap: 6px; width: 100%; max-width: 100%; margin-top: 0; flex-shrink: 0; order: 2; }
+              .canvas-actions .btn { flex: 1; padding: 10px 6px; font-size: 11px; min-width: 0; }
+
+              /* Mobile presets live inside .panel-content, scrolling with parameters */
+              .mobile-presets-wrap { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+              .mobile-presets-wrap .presets-label,
+              .mobile-presets-label { display: block; font-size: 10px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.3); padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+              .mobile-presets-wrap .presets,
+              .mobile-presets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+
+              .preset-btn { padding: 6px 8px; border-radius: 8px; font-size: 11px; gap: 7px; }
+              .preset-thumb { width: 28px; height: 28px; border-radius: 5px; }
               .panel { border-left: none; border-top: 1px solid rgba(255,255,255,0.08); flex: 1; display: flex; flex-direction: column; min-height: 0; position: static; height: auto; }
               .tabs { height: auto; flex-shrink: 0; }
-              .panel-content { padding: 14px; gap: 14px; flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-              
               .tab { font-size: 10px; padding: 12px 4px; letter-spacing: 0.05em; height: auto; display: block; }
+              .panel-content { padding: 14px; gap: 14px; flex: 1; overflow-y: auto; }
               .control-row label { min-width: 88px; font-size: 11px; }
               input[type=range]::-webkit-slider-thumb { width: 26px; height: 26px; }
               input[type=range]::-moz-range-thumb { width: 26px; height: 26px; }
               .export-btn { min-height: 52px; font-size: 14px; }
+              .font-grid { grid-template-columns: 1fr 1fr 1fr; }
             }
-
-            /* ── Very small screens (≤ 380px) ── */
             @media (max-width: 380px) {
-              .header h1 { font-size: 15px; }
-              .canvas-wrap { flex: 0 0 140px; height: 140px; }
-              .canvas-row { height: 140px; }
-              .preset-btn { font-size: 8px; padding: 0 5px; min-height: 22px; }
+              .header h1 { font-size: 14px; }
+              .canvas-wrap { flex: none; aspect-ratio: 1 / 1; width: 100%; height: auto; max-width: 100%; }
+              .canvas-actions .btn { padding: 9px 4px; font-size: 10px; }
               .control-row label { min-width: 76px; }
             }
           `}</style>
 
           <div className="app">
-            <header className="header">
+            <header className="header" role="banner">
               <h1>MONOGRAM STUDIO</h1>
-              <span>Logo Generator</span>
-              <a href="https://ko-fi.com/bankenichi" target="_blank" rel="noopener noreferrer" className="kofi-desktop" title="Support me on Ko-fi">
-                <img src="https://raw.githubusercontent.com/bankenichi/Monogram-Logo-Generator/main/kofi%20logo.png" alt="Support on Ko-fi" />
-              </a>
+              <span className="header-sub">Logo Generator</span>
+              <div className="header-actions">
+                <div className="undo-redo" role="group" aria-label="Undo and redo">
+                  <button
+                    className="icon-btn" onClick={undo} disabled={!canUndo}
+                    aria-label="Undo (Ctrl+Z)" title="Undo (Ctrl+Z)"
+                  >↩</button>
+                  <button
+                    className="icon-btn" onClick={redo} disabled={!canRedo}
+                    aria-label="Redo (Ctrl+Y)" title="Redo (Ctrl+Y)"
+                  >↪</button>
+                </div>
+                <a href="https://ko-fi.com/bankenichi" target="_blank" rel="noopener noreferrer" className="kofi-desktop" title="Support me on Ko-fi" aria-label="Support on Ko-fi">
+                  <img src="https://raw.githubusercontent.com/bankenichi/Monogram-Logo-Generator/main/kofi%20logo.png" alt="Ko-fi" />
+                </a>
+              </div>
             </header>
 
-            <div className="canvas-area">
+            <main className="canvas-area" aria-label="Canvas area">
               <div className="canvas-row">
+                {/* Desktop: presets + actions share the left column.
+                    Mobile: sidebar uses `display: contents` so .canvas-actions
+                    promotes into canvas-row and presets-label/presets are hidden
+                    (mobile presets are rendered separately inside .panel-content). */}
                 <div className="canvas-sidebar">
-                  <div className="presets-label">Presets</div>
-                  <div className="presets">
-                    {PRESETS.map(p => <button key={p.name} className="preset-btn" onClick={() => applyPreset(p)}>{p.name}</button>)}
+                  <div className="presets-label" aria-hidden="true">Presets</div>
+                  <div className="presets" role="list" aria-label="Design presets">
+                    {PRESETS.map(p => (
+                      <PresetThumb
+                        key={p.name}
+                        preset={p}
+                        active={settings.name === p.name && settings.bgTop === p.bgTop}
+                        onClick={() => applyPreset(p)}
+                        fontLoaded={fontLoaded}
+                      />
+                    ))}
                   </div>
+
                   <div className="canvas-actions">
-                    <button className="btn btn-primary" onClick={downloadPNG}>↓ Download PNG</button>
+                    <button className="btn btn-primary" onClick={downloadPNG} aria-label="Download PNG">
+                      <span aria-hidden="true">↓</span> PNG
+                    </button>
+                    <button className="btn btn-secondary" onClick={downloadSVG} aria-label="Download SVG">
+                      <span aria-hidden="true">↓</span> SVG
+                    </button>
+                    <button className="btn btn-share" onClick={shareURL} aria-label="Copy shareable link">
+                      <span aria-hidden="true">⎘</span> Share
+                    </button>
                   </div>
                 </div>
-                <div className="canvas-wrap"><canvas ref={canvasRef} /></div>
-              </div>
-            </div>
 
-            <div className="panel">
-              <div className="tabs">
+                {/* Preview */}
+                <div className="canvas-wrap" role="img">
+                  <canvas ref={canvasRef} />
+                </div>
+              </div>
+            </main>
+
+            <div className="panel" role="complementary" aria-label="Design controls">
+              <div className="tabs" role="tablist" aria-label="Control panels">
                 {["design","colors","export/import"].map(t => (
-                  <button key={t} className={`tab ${tab===t?"active":""}`} onClick={()=>setTab(t)}>{t}</button>
+                  <button
+                    key={t}
+                    role="tab"
+                    aria-selected={tab === t}
+                    className={`tab ${tab===t?"active":""}`}
+                    onClick={()=>setTab(t)}
+                  >{t}</button>
                 ))}
               </div>
 
-              <div className="panel-content">
+              <div className="panel-content" role="tabpanel">
+                {/* Mobile-only: presets at top of scrollable panel content.
+                    Hidden on export/import tab to give room for the import/export UI. */}
+                {tab !== "export/import" && (
+                  <div className="mobile-presets-wrap">
+                    <div className="presets-label mobile-presets-label" aria-hidden="true">Presets</div>
+                    <div className="presets mobile-presets" role="list" aria-label="Design presets">
+                      {PRESETS.map(p => (
+                        <PresetThumb
+                          key={p.name}
+                          preset={p}
+                          active={settings.name === p.name && settings.bgTop === p.bgTop}
+                          onClick={() => applyPreset(p)}
+                          fontLoaded={fontLoaded}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {tab === "design" && (
                   <>
                     <div className="section">
                       <div className="section-title">Content</div>
                       <div className="control-row">
-                        <label>Big Letter</label>
-                        <input className="text-input" style={{maxWidth:60,textAlign:"center",fontSize:20}}
+                        <label htmlFor="input-letter">Big Letter</label>
+                        <input id="input-letter" className="text-input" style={{maxWidth:60,textAlign:"center",fontSize:20}}
                           maxLength={2} value={settings.bigLetter}
-                          onChange={e=>set("bigLetter", e.target.value.toUpperCase())} />
+                          onChange={e=>set("bigLetter", e.target.value.toUpperCase())}
+                          aria-label="Big letter (1-2 characters)" />
                       </div>
                       <div className="control-row">
-                        <label>Name</label>
-                        <input className="text-input" value={settings.name} onChange={e=>set("name", e.target.value)} />
+                        <label htmlFor="input-name">Name</label>
+                        <input id="input-name" className="text-input" value={settings.name}
+                          onChange={e=>set("name", e.target.value)}
+                          aria-label="Name text" />
                       </div>
                     </div>
+
+                    <div className="section">
+                      <div className="section-title">Font</div>
+                      <div className="font-grid" role="group" aria-label="Font selection">
+                        {FONTS.map(f => (
+                          <button
+                            key={f.family}
+                            className={`font-btn ${settings.fontFamily === f.family ? "active" : ""}`}
+                            onClick={() => set("fontFamily", f.family)}
+                            aria-pressed={settings.fontFamily === f.family}
+                            aria-label={`Font: ${f.label}`}
+                          >
+                            <span className="font-preview" style={{fontFamily: `'${f.family}', sans-serif`, fontWeight: f.weight}}>Ag</span>
+                            <span className="font-label">{f.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     <div className="section">
                       <div className="section-title">Shape</div>
-                      <div className="shape-picker">
-                        {SHAPES.map(s => <button key={s} className={`shape-btn ${settings.shape===s?"active":""}`} onClick={()=>set("shape",s)}>{s}</button>)}
+                      <div className="shape-picker" role="group" aria-label="Shape selection">
+                        {SHAPES.map(s => (
+                          <button
+                            key={s}
+                            className={`shape-btn ${settings.shape===s?"active":""}`}
+                            onClick={()=>set("shape",s)}
+                            aria-pressed={settings.shape === s}
+                          >{s}</button>
+                        ))}
                       </div>
                     </div>
+
                     <div className="section">
                       <div className="section-title">Typography</div>
                       <SliderRow label="Letter size" value={settings.letterSize} min={300} max={700} step={10} onChange={v=>set("letterSize",v)} unit="px" />
+                      <SliderRow label="Letter pos X" value={settings.letterOffsetX} min={-200} max={200} step={5} onChange={v=>set("letterOffsetX",v)} unit="px" />
+                      <SliderRow label="Letter pos Y" value={settings.letterOffsetY} min={-200} max={200} step={5} onChange={v=>set("letterOffsetY",v)} unit="px" />
                       <SliderRow label="Name size" value={settings.nameSize} min={48} max={160} step={4} onChange={v=>set("nameSize",v)} unit="px" />
+                      <SliderRow label="Vertical position" value={settings.nameOffsetY} min={-200} max={200} step={5} onChange={v=>set("nameOffsetY",v)} unit="px" />
                       <SliderRow label="Letter spacing" value={settings.letterSpacing} min={0} max={60} onChange={v=>set("letterSpacing",v)} unit="px" />
                       <SliderRow label="Outline width" value={settings.outlineWidth} min={0} max={8} onChange={v=>set("outlineWidth",v)} unit="px" />
                     </div>
+
+                    <div className="section">
+                      <div className="section-title">Texture</div>
+                      <div className="shape-picker" role="group" aria-label="Texture selection">
+                        {TEXTURES.map(t => (
+                          <button
+                            key={t}
+                            className={`shape-btn ${settings.texture===t?"active":""}`}
+                            onClick={()=>set("texture",t)}
+                            aria-pressed={settings.texture === t}
+                          >{t}</button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="section">
+                      <div className="section-title">Rings</div>
+                      <div className="toggle-row">
+                        <label>Outer ring</label>
+                        <button className={`toggle ${settings.showRing1?"on":""}`} onClick={()=>set("showRing1",!settings.showRing1)} aria-pressed={settings.showRing1} aria-label="Toggle outer ring" />
+                      </div>
+                      {settings.showRing1 && <SliderRow label="Width" value={settings.ring1Width} min={1} max={20} onChange={v=>set("ring1Width",v)} unit="px" />}
+                      <div className="toggle-row">
+                        <label>Inner ring</label>
+                        <button className={`toggle ${settings.showRing2?"on":""}`} onClick={()=>set("showRing2",!settings.showRing2)} aria-pressed={settings.showRing2} aria-label="Toggle inner ring" />
+                      </div>
+                      {settings.showRing2 && <>
+                        <SliderRow label="Width" value={settings.ring2Width} min={1} max={12} onChange={v=>set("ring2Width",v)} unit="px" />
+                        <SliderRow label="Gap from outer" value={settings.ring1Gap} min={4} max={60} onChange={v=>set("ring1Gap",v)} unit="px" />
+                      </>}
+                    </div>
+
                     <div className="section">
                       <div className="section-title">Glow</div>
                       <div className="toggle-row">
                         <label>Enable glow</label>
-                        <button className={`toggle ${settings.glow?"on":""}`} onClick={()=>set("glow",!settings.glow)} />
+                        <button className={`toggle ${settings.glow?"on":""}`} onClick={()=>set("glow",!settings.glow)} aria-pressed={settings.glow} aria-label="Toggle glow" />
                       </div>
                       {settings.glow && <SliderRow label="Intensity" value={settings.glowIntensity} min={0.2} max={3} step={0.1} onChange={v=>set("glowIntensity",v)} />}
                     </div>
@@ -618,8 +1440,7 @@
                       <ColorRow label="Bottom color" value={settings.bgBot} onChange={v=>set("bgBot",v)} />
                       <div className="shape-picker" style={{marginTop: 8}}>
                         {["linear", "radial"].map(t => (
-                          <button key={t} className={`shape-btn ${settings.bgGradientType===t?"active":""}`}
-                            onClick={()=>set("bgGradientType", t)}>{t}</button>
+                          <button key={t} className={`shape-btn ${settings.bgGradientType===t?"active":""}`} onClick={()=>set("bgGradientType", t)} aria-pressed={settings.bgGradientType === t}>{t}</button>
                         ))}
                       </div>
                       {settings.bgGradientType === "linear" && (
@@ -633,8 +1454,7 @@
                       <ColorRow label="Gradient bot" value={settings.kBot} onChange={v=>set("kBot",v)} />
                       <div className="shape-picker" style={{marginTop: 8}}>
                         {["linear", "radial"].map(t => (
-                          <button key={t} className={`shape-btn ${settings.kGradientType===t?"active":""}`}
-                            onClick={()=>set("kGradientType", t)}>{t}</button>
+                          <button key={t} className={`shape-btn ${settings.kGradientType===t?"active":""}`} onClick={()=>set("kGradientType", t)} aria-pressed={settings.kGradientType === t}>{t}</button>
                         ))}
                       </div>
                       {settings.kGradientType === "linear" && (
@@ -649,8 +1469,7 @@
                       <ColorRow label="Gradient bot" value={settings.nameBot} onChange={v=>set("nameBot",v)} />
                       <div className="shape-picker" style={{marginTop: 8}}>
                         {["linear", "radial"].map(t => (
-                          <button key={t} className={`shape-btn ${settings.nameGradientType===t?"active":""}`}
-                            onClick={()=>set("nameGradientType", t)}>{t}</button>
+                          <button key={t} className={`shape-btn ${settings.nameGradientType===t?"active":""}`} onClick={()=>set("nameGradientType", t)} aria-pressed={settings.nameGradientType === t}>{t}</button>
                         ))}
                       </div>
                       {settings.nameGradientType === "linear" && (
@@ -661,8 +1480,11 @@
                     </div>
                     <div className="section">
                       <div className="section-title">Rings</div>
-                      <ColorRow label="Outer ring" value={settings.ring1} onChange={v=>set("ring1",v)} />
-                      <ColorRow label="Inner ring" value={settings.ring2} onChange={v=>set("ring2",v)} />
+                      {settings.showRing1 && <ColorRow label="Outer ring" value={settings.ring1} onChange={v=>set("ring1",v)} />}
+                      {settings.showRing2 && <ColorRow label="Inner ring" value={settings.ring2} onChange={v=>set("ring2",v)} />}
+                      {!settings.showRing1 && !settings.showRing2 && (
+                        <p style={{fontSize:11, color:"rgba(255,255,255,0.3)"}}>Both rings disabled — enable them in Design tab.</p>
+                      )}
                     </div>
                   </>
                 )}
@@ -670,39 +1492,87 @@
                 {tab === "export/import" && (
                   <div className="export-wrap">
                     <div className="export-section">
-                      <div className="section-title">Export Design</div>
-                      <p className="export-desc">Save your current design as a JSON file. You can re-import it anytime to continue working.</p>
-                      <button className="btn btn-primary export-btn" onClick={exportJSON}>
-                        <span className="btn-icon">↓</span> Export JSON
+                      <div className="section-title">Download</div>
+                      <p className="export-desc">Export your monogram as a high-res PNG (raster) or scalable SVG (vector, ideal for logos).</p>
+                      <button className="btn btn-primary export-btn" onClick={downloadPNG}>
+                        <span className="btn-icon" aria-hidden="true">↓</span> Download PNG
+                      </button>
+                      <button className="btn btn-secondary export-btn" onClick={downloadSVG}>
+                        <span className="btn-icon" aria-hidden="true">↓</span> Download SVG
                       </button>
                     </div>
                     <div className="export-divider" />
                     <div className="export-section">
-                      <div className="section-title">Import Design</div>
-                      <p className="export-desc">Load a previously exported JSON file to restore your design settings.</p>
-                      <label className="btn btn-import export-btn" style={{cursor:"pointer"}}>
-                        <span className="btn-icon">↑</span> Import JSON
-                        <input type="file" accept=".json,application/json" style={{display:"none"}} onChange={importJSON} />
-                      </label>
-                      {importError && <div className="import-error">{importError}</div>}
-                      {importSuccess && <div className="import-success">✓ Design loaded successfully!</div>}
+                      <div className="section-title">Share</div>
+                      <p className="export-desc">Copy a URL with your full design encoded. Anyone with the link will see your exact settings.</p>
+                      <button className="btn btn-share export-btn" onClick={shareURL}>
+                        <span className="btn-icon" aria-hidden="true">⎘</span> Copy Share Link
+                      </button>
                     </div>
                     <div className="export-divider" />
                     <div className="export-section">
-                      <div className="section-title">Current Design Preview</div>
-                      <div className="json-preview">{JSON.stringify(settings, null, 2)}</div>
+                      <div className="section-title">Save / Load JSON</div>
+                      <p className="export-desc">Export your settings as JSON to back them up, or import a previously saved file.</p>
+                      <button className="btn btn-primary export-btn" onClick={exportJSON}>
+                        <span className="btn-icon" aria-hidden="true">↓</span> Export JSON
+                      </button>
+                      <label className="btn btn-import export-btn" style={{cursor:"pointer"}}>
+                        <span className="btn-icon" aria-hidden="true">↑</span> Import JSON
+                        <input type="file" accept=".json,application/json" style={{display:"none"}} onChange={importJSON} aria-label="Import JSON file" />
+                      </label>
+                      {importError && <div className="import-error" role="alert">{importError}</div>}
+                      {importSuccess && <div className="import-success" role="status">✓ Design loaded successfully!</div>}
+                    </div>
+                    <div className="export-divider" />
+                    <div className="export-section">
+                      <div className="section-title">Current Settings</div>
+                      <div className="json-preview" aria-label="Current settings JSON" tabIndex={0}>
+                      {JSON.stringify(settings, null, 2).replace(/"([a-zA-Z0-9_]+)":/g, '$1:')}
+                      </div>
                     </div>
                   </div>
                 )}
-                
-                {/* ── Ko-fi Support Link Mobile Placement ── */}
-                <a href="https://ko-fi.com/bankenichi" target="_blank" rel="noopener noreferrer" className="kofi-mobile" title="Support me on Ko-fi">
-                  <img src="https://raw.githubusercontent.com/bankenichi/Monogram-Logo-Generator/main/kofi%20logo.png" alt="Support on Ko-fi" />
-                </a>
 
+                <button 
+                  className="randomize-global-btn"
+                  onClick={handleRandomize}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    marginTop: '20px', /* Generous spacing from the sliders above it */
+                    background: 'rgba(255, 200, 40, 0.06)',
+                    border: '1px solid rgba(255, 200, 40, 0.2)',
+                    borderRadius: '8px',
+                    color: '#ffc828',
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 200, 40, 0.12)'}
+                  onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 200, 40, 0.06)'}
+                >
+                  🎲 Randomize Design
+                </button>
+
+              
+                <a href="https://ko-fi.com/bankenichi" target="_blank" rel="noopener noreferrer" className="kofi-mobile" title="Support me on Ko-fi" aria-label="Support on Ko-fi">
+                  <img src="https://raw.githubusercontent.com/bankenichi/Monogram-Logo-Generator/main/kofi%20logo.png" alt="Ko-fi" />
+                </a>
               </div>
             </div>
           </div>
+
+          {shareToast && (
+            <div className="share-toast" role="status" aria-live="polite">
+              ✓ Share link copied to clipboard!
+            </div>
+          )}
         </>
       );
     }
