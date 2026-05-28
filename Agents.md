@@ -213,7 +213,7 @@ A minimal flight check. Open `index.html` in a fresh browser tab (clear localSto
 2. **Edit text** — Change Big Letter to `RG`, Name to `Royal Gold`. Preview updates immediately.
 3. **Click presets** — All 6 preset thumbnails render correctly; clicking each applies cleanly.
 4. **Each tab loads** — Design, Colors, Export/Import all render without console errors.
-5. **Shape picker** — Click each of the 8 shapes. Preview reflects each.
+5. **Shape picker** — Click each of the 9 shapes. Preview reflects each. "None" shows transparent background with no rings.
 6. **Font picker** — Click each of the 8 fonts. Preview reflects each.
 7. **Texture picker** — Cycle through 5 textures.
 8. **Sliders** — Move letter size, glow intensity, gradient angle — preview updates live.

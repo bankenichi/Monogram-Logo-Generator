@@ -330,7 +330,7 @@
       },
     ];
 
-    const SHAPES = ["circle", "square", "rounded-square", "diamond", "hexagon", "triangle", "pentagram", "hexagram"];
+    const SHAPES = ["none", "circle", "square", "rounded-square", "diamond", "hexagon", "triangle", "pentagram", "hexagram"];
 
     const DEFAULT_SETTINGS = {
       bigLetter: "E",
@@ -471,19 +471,21 @@
       const cx = W/2, cy = H/2, R = W/2 - 16;
 
       // Background
-      ctx.save();
-      clipShape(ctx, shape, cx, cy, R);
-      const bgGrad = createDynamicGradient(ctx, bgGradientType, bgGradientAngle, bgGradientStop, bgTop, bgBot, cx, cy, H*0.7, H);
-      ctx.fillStyle = bgGrad;
-      ctx.fill();
+      if (shape !== "none") {
+        ctx.save();
+        clipShape(ctx, shape, cx, cy, R);
+        const bgGrad = createDynamicGradient(ctx, bgGradientType, bgGradientAngle, bgGradientStop, bgTop, bgBot, cx, cy, H*0.7, H);
+        ctx.fillStyle = bgGrad;
+        ctx.fill();
 
-      // Texture overlay (clipped inside shape)
-      drawTexture(ctx, texture, W, H);
-      ctx.restore();
+        // Texture overlay (clipped inside shape)
+        drawTexture(ctx, texture, W, H);
+        ctx.restore();
 
-      // Rings
-      if (showRing1) strokeShape(ctx, shape, cx, cy, R, ring1, ring1Width || 5);
-      if (showRing2) strokeShape(ctx, shape, cx, cy, R - (ring1Gap || 18), ring2, ring2Width || 2);
+        // Rings
+        if (showRing1) strokeShape(ctx, shape, cx, cy, R, ring1, ring1Width || 5);
+        if (showRing2) strokeShape(ctx, shape, cx, cy, R - (ring1Gap || 18), ring2, ring2Width || 2);
+      }
 
       // Big letter
       const letterFont = getFontString(fontFamily, 900, letterSize);
@@ -846,12 +848,14 @@
     ${texturePattern}${glowFilter}
   </defs>
 
+  ${shape !== "none" ? `
   <!-- Background (clipped to shape) -->
   <path d="${shapePath}" fill="url(#bgGrad)"/>${textureOverlay}
 
   <!-- Rings (NOT clipped — drawn outside shape same as canvas) -->
   ${showRing1 ? `<path d="${shapePath}" fill="none" stroke="${ring1}" stroke-width="${ring1Width || 5}"/>` : ""}
   ${showRing2 ? `<path d="${buildShapeSVGPath(shape, cx, cy, ring2R)}" fill="none" stroke="${ring2}" stroke-width="${ring2Width || 2}"/>` : ""}
+  ` : ""}
 
   <!-- Big Letter (vector paths — font-independent) -->
   ${bigLetterSVG}
@@ -1276,6 +1280,7 @@
       const canUndo = historyIndexRef.current > 0;
       const canRedo = historyIndexRef.current < historyRef.current.length - 1;
       const isDefault = JSON.stringify(settings) === JSON.stringify(DEFAULT_SETTINGS);
+      const noShape = settings.shape === "none";
 
       return (
         <>
@@ -1354,6 +1359,7 @@
 
             /* ── Controls ── */
             .section { display: flex; flex-direction: column; gap: 10px; }
+            .section-disabled { opacity: 0.35; pointer-events: none; }
             .section-title { font-size: 10px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.25); padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.06); }
             .control-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; overflow: hidden; }
             .control-row label { font-size: 12px; color: rgba(255,255,255,0.55); white-space: nowrap; min-width: 100px; }
@@ -1642,7 +1648,7 @@
                       </div>
                     </div>
 
-                    <div className="section">
+                    <div className={`section ${noShape ? "section-disabled" : ""}`}>
                       <div className="section-title">Rings</div>
                       <div className="toggle-row">
                         <label>Outer ring</label>
@@ -1672,7 +1678,7 @@
 
                 {tab === "colors" && (
                   <>
-                    <div className="section">
+                    <div className={`section ${noShape ? "section-disabled" : ""}`}>
                       <div className="section-title">Background</div>
                       <ColorRow label="Top color" value={settings.bgTop} onChange={v=>set("bgTop",v)} />
                       <ColorRow label="Bottom color" value={settings.bgBot} onChange={v=>set("bgBot",v)} />
@@ -1716,7 +1722,7 @@
                       <SliderRow label="Color Stop" value={settings.nameGradientStop} min={10} max={100} onChange={v=>set("nameGradientStop",v)} unit="%" />
                       <div style={{marginTop: 8}}><ColorRow label="Outline color" value={settings.outlineColor} onChange={v=>set("outlineColor",v)} /></div>
                     </div>
-                    <div className="section">
+                    <div className={`section ${noShape ? "section-disabled" : ""}`}>
                       <div className="section-title">Rings</div>
                       {settings.showRing1 && <ColorRow label="Outer ring" value={settings.ring1} onChange={v=>set("ring1",v)} />}
                       {settings.showRing2 && <ColorRow label="Inner ring" value={settings.ring2} onChange={v=>set("ring2",v)} />}

@@ -21,7 +21,7 @@ The single object that describes a complete design. Every key has a default in `
 
 | Key | Type | Range / Values | Default | Notes |
 |---|---|---|---|---|
-| `shape` | enum | `circle`, `square`, `rounded-square`, `diamond`, `hexagon`, `triangle`, `pentagram`, `hexagram` | `"circle"` | Both clip and outer outline use this. |
+| `shape` | enum | `none`, `circle`, `square`, `rounded-square`, `diamond`, `hexagon`, `triangle`, `pentagram`, `hexagram` | `"circle"` | `"none"` disables background, texture, rings, and outline. |
 | `texture` | enum | `none`, `crosshatch`, `dots`, `grid`, `lines` | `"none"` | Low-opacity overlay drawn inside the shape clip. |
 | `fontFamily` | enum | One of `FONTS[*].family` (see §2) | `"Poppins"` | Must match an entry in the `FONTS` array exactly. |
 
@@ -172,8 +172,10 @@ To add a font:
 ## 3. `SHAPES`
 
 ```js
-const SHAPES = ["circle", "square", "rounded-square", "diamond", "hexagon", "triangle", "pentagram", "hexagram"];
+const SHAPES = ["none", "circle", "square", "rounded-square", "diamond", "hexagon", "triangle", "pentagram", "hexagram"];
 ```
+
+`"none"` renders no background shape, texture, rings, or outline — only the big letter and name text on a transparent background. Background color and ring controls are visually disabled in the UI when `"none"` is selected.
 
 Each shape has two parallel implementations:
 

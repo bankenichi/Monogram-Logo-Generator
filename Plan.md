@@ -13,6 +13,7 @@ This document is the source of truth for *what's shipped*, *what's pending*, and
 - [x] Canvas-based preview at 700x700 internal resolution
 - [x] CSS-scaled responsive preview surface (200px mobile, up to 600px desktop)
 - [x] Eight shapes: circle, square, rounded-square, diamond, hexagon, triangle, pentagram, hexagram
+- [x] "None" shape option — transparent background (no shape, texture, rings, or outline)
 - [x] Five texture overlays: none, crosshatch, dots, grid, lines
 - [x] Linear + radial gradient support for background, big letter, and name text
 - [x] Independent gradient angle and stop position per channel
