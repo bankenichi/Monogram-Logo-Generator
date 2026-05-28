@@ -192,7 +192,7 @@ const TEXTURES = ["none", "crosshatch", "dots", "grid", "lines"];
 
 Drawn by `drawTexture(ctx, texture, W, H)` as low-alpha overlays inside the shape clip. `"none"` short-circuits and draws nothing.
 
-Texture is **not currently exported to SVG.** SVG output ignores the texture key. Note this in `Plan.md` if you intend to fix it.
+Textures are exported to SVG via `buildTexturePattern()` inside `exportSVG`. Each texture maps to a `<pattern>` element with `patternUnits="userSpaceOnUse"`, clipped to the shape via `clip-path="url(#shapeClip)"`. The SVG texture overlay matches the canvas rendering.
 
 ---
 
@@ -290,7 +290,7 @@ When you change anything in `Settings`, verify:
 - [ ] Key is in `DEFAULT_SETTINGS`.
 - [ ] Key has a UI control somewhere in the design / colors / export panel.
 - [ ] Key is read by `drawMonogram`.
-- [ ] Key is read by `exportSVG` (or explicitly noted as canvas-only — texture is currently the only such exception).
+- [x] Key is read by `exportSVG` (all visual settings including textures are now exported).
 - [ ] Range matches the slider min/max in the design panel JSX.
 - [ ] `handleRandomize` emits a sane value for the key (or you've decided to skip randomizing it).
 - [ ] A round-trip JSON export + import preserves the value.

@@ -219,13 +219,14 @@ A minimal flight check. Open `index.html` in a fresh browser tab (clear localSto
 8. **Sliders** — Move letter size, glow intensity, gradient angle — preview updates live.
 9. **Toggles** — Disable outer ring, disable inner ring, disable glow. Preview updates.
 10. **Undo / redo** — Make 5 changes, press Ctrl+Z 5 times — back to start. Ctrl+Y forward 5 times.
-11. **PNG download** — Click Download PNG. File saves with name `monogram_<letter>_<name>.png` and opens correctly.
+11. **PNG download** — Click Download PNG. File saves with name `monogram_<letter>_<name>.png` and opens correctly. Change resolution to 2×, download again — file is 1400×1400 and pixel-perfect.
 12. **SVG download** — Click Download SVG. File opens correctly in a browser; visually matches the canvas preview.
 13. **JSON export → import** — Export JSON, refresh page, import the JSON. Design restored.
 14. **Share link** — Click Share, open the copied URL in an incognito tab. Same design appears.
-15. **Randomize** — Click Randomize Design. Output is cohesive (not a random mess of clashing colors); colors fit one of: analogous / complementary / monochromatic.
-16. **Mobile (DevTools responsive @ 375px)** — Preview is centered, action buttons are a horizontal row below the preview, presets appear at the top of the panel and scroll with parameters, presets are hidden on the Export/Import tab.
-17. **Mobile (DevTools responsive @ 1024px)** — Presets list on the left, action buttons below it in the same column, large preview on the right.
+15. **Reset to default** — Make changes, click ↺ button in header. Design resets to defaults. Button is disabled when already at defaults.
+16. **Randomize** — Click Randomize Design. Output is cohesive (not a random mess of clashing colors); colors fit one of: analogous / complementary / monochromatic.
+17. **Mobile (DevTools responsive @ 375px)** — Preview is centered, action buttons are a horizontal row below the preview at 6-1-6-6 ratio, presets appear at the top of the panel and scroll with parameters, presets are hidden on the Export/Import tab.
+18. **Mobile (DevTools responsive @ 1024px)** — Presets list on the left, action buttons below it in the same column, large preview on the right.
 
 Any failure here is a release blocker.
 

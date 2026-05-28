@@ -13,7 +13,7 @@ The entire application — markup, styles, fonts (`@font-face` links), React cod
 - Constants (`FONTS`, `PRESETS`, `SHAPES`, `TEXTURES`, `DEFAULT_SETTINGS`) are top-level `const` declarations inside the Babel script.
 - Asset files in the repo root (`fonts/`, `favicon.png`, `kofi logo.png`, `preview/`) are referenced by relative path.
 
-**If you are tempted to split the file, don't.** The portability is the feature. The codebase is small enough (~1650 lines) that section comments are sufficient navigation.
+**If you are tempted to split the file, don't.** The portability is the feature. The codebase is small enough (~1830 lines) that section comments are sufficient navigation.
 
 ---
 
@@ -57,7 +57,7 @@ The file has a stable structure. Line numbers shift as you edit; reach for the m
   <div id="root"></div>
   <script type="text/babel">
     // ── Hooks shim ──
-    const { useState, useRef, useEffect, useCallback, useMemo } = React;
+    const { useState, useRef, useEffect, useCallback } = React;
 
     // ── Top-level constants ──
     function useDebounce(...)        // custom hook
@@ -72,7 +72,7 @@ The file has a stable structure. Line numbers shift as you edit; reach for the m
     function createDynamicGradient(...)
     function drawTexture(ctx, texture, W, H)
     function getFontString(fontFamily, weight, size)
-    function drawMonogram(canvas, settings)        // ← MAIN CANVAS RENDER
+    function drawMonogram(canvas, settings, exportSize)  // ← MAIN CANVAS RENDER
 
     // ── SVG export ──
     function buildShapeSVGPath(shape, cx, cy, R)
@@ -148,9 +148,9 @@ settings change ─┐
 
 `useDebounce(settings, 0)` is currently a zero-delay debounce — effectively a no-op pass-through. The hook is in place so you can raise the delay later if needed without restructuring the effect dependency.
 
-### `drawMonogram(canvas, settings)`
+### `drawMonogram(canvas, settings, exportSize)`
 
-The single function that owns the render. Draws into a fixed `700 x 700` coordinate space (the canvas element is then CSS-scaled to its container).
+The single function that owns the render. Draws into a fixed `700 x 700` coordinate space. When `exportSize` is provided, the canvas is set to that resolution and `ctx.scale(size/700, size/700)` is applied so all coordinates stay in the 700-unit space while rendering natively at the target resolution.
 
 Order of operations:
 
@@ -178,7 +178,8 @@ exportSVG(settings)
   ├─► loadParsedFont(family)          # fetch ./fonts/<file>.woff2, Typr.parse() the buffer, cache it
   ├─► textToCombinedPathD(...)         # walk codepoints, get glyph paths, merge into one d string
   │     • each glyph translated by its advance width (in font units)
-  │     • result is wrapped in <g transform="translate(...) scale(scale, -scale)">
+  │     • scale+translate transform baked directly into path coordinates (no <g> wrapper)
+  │     • produces root SVG coordinates so userSpaceOnUse gradients align correctly
   │     • single combined path means a single gradient fill spans all glyphs
   └─► assemble final <svg> string with <defs> (gradients, glow filter, clip), shape, rings, paths
 ```
@@ -207,6 +208,7 @@ settings ──► setSettings()         single source of truth
    │
    ├── set(key, val)               update one key, push history, autosave
    ├── applyPreset(preset)         merge preset into settings, push history
+   ├── resetToDefault()            restore DEFAULT_SETTINGS, push history
    ├── importJSON(file)            replace from disk, push history
    └── handleRandomize()           regenerate large slice, push history
 ```
@@ -330,7 +332,7 @@ Inside `.canvas-row` on mobile:
 | Element | `order` | Visual position |
 |---|---|---|
 | `.canvas-wrap` | 1 | top (preview, 200x200 centered) |
-| `.canvas-actions` | 2 | below preview (horizontal row, PNG/SVG/Share, flex: 1 each) |
+| `.canvas-actions` | 2 | below preview (horizontal row, PNG+res/SVG/Share at 6-1-6-6 flex ratio) |
 
 Presets-related children of `.canvas-sidebar` are `display: none` at this breakpoint.
 
@@ -385,6 +387,7 @@ This is the function to extend if you want new "themes" or constraints on what g
 - Tab buttons set `role="tab"` and `aria-selected`.
 - Toggle buttons set `aria-pressed`.
 - The share toast uses `role="status"` with `aria-live="polite"`.
+- The share warning uses `role="alert"`.
 - The import error uses `role="alert"`.
 - `display: contents` on `.canvas-sidebar` is supported with correct semantics in current Chrome, Firefox, and Safari. The sidebar div carries no role or label, so semantic loss is not a concern.
 

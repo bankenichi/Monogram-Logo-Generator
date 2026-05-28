@@ -25,9 +25,9 @@ No sign-ups, no premium paywalls, no watermarks, no server-side processing. Ever
 
 **Output**
 
-- One-click **PNG** download at 700x700 (sharp on retina, suitable for upscaling).
-- **SVG** export — fully vector, scales infinitely, ideal for print and logos.
-- **Shareable URLs** — your entire design serialized into the URL hash; send the link, recipient sees the exact same design.
+- One-click **PNG** download at 700×700, 1400×1400, or 2800×2800 — native resolution render, no upscaling.
+- **SVG** export — fully vector, scales infinitely, ideal for print and logos. Font-independent (converts text to paths at export time).
+- **Shareable URLs** — your entire design serialized into the URL hash; send the link, recipient sees the exact same design. Warns if the URL exceeds browser limits and offers JSON export as fallback.
 - **JSON save/load** — back up or hand off a design as a portable `.json` file.
 
 **Design controls**
@@ -45,6 +45,7 @@ No sign-ups, no premium paywalls, no watermarks, no server-side processing. Ever
 - **Six built-in presets** — Royal Gold, Midnight Aurora, Crimson Ember, Arctic Silver, Forest Obsidian, Neon Noir.
 - **Randomize** generator that produces cohesive palettes using HSL theory (analogous / complementary / monochromatic harmonies).
 - **Undo / redo** with full keyboard shortcuts (Ctrl/Cmd+Z, Ctrl/Cmd+Y, Ctrl/Cmd+Shift+Z) and up to 100 steps of history.
+- **Reset to default** — one-click restore to the default design, with undo support.
 - **Auto-save** — every change persists to `localStorage` so closing the tab doesn't lose work.
 - Responsive layout — large preview + sidebar on desktop, stacked layout with full-width preview on mobile.
 
@@ -58,6 +59,7 @@ Built as a portable Single Page Application contained entirely in one HTML file.
 - **Babel Standalone** — in-browser JSX compilation.
 - **HTML5 Canvas API** — for live preview and PNG rasterization.
 - **Hand-rolled SVG** — for vector export.
+- **Typr.js** — in-browser font parsing for SVG text-to-path conversion (loaded from CDN at export time).
 - **Vanilla CSS3** — CSS Grid for desktop layout, Flexbox + `display: contents` for the mobile reflow.
 - **Self-hosted woff2 fonts** — no Google Fonts dependency, works fully offline.
 

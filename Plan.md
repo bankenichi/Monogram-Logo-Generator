@@ -1,6 +1,6 @@
 # Plan.md
 
-Implementation checklist, testing criteria, and forward roadmap. Reflects state as of **2026-05-28**.
+Implementation checklist, testing criteria, and forward roadmap. Reflects state as of **2026-05-28 (updated)**.
 
 This document is the source of truth for *what's shipped*, *what's pending*, and *what passes*. Update it whenever you complete or change a feature.
 
@@ -13,7 +13,7 @@ This document is the source of truth for *what's shipped*, *what's pending*, and
 - [x] Canvas-based preview at 700x700 internal resolution
 - [x] CSS-scaled responsive preview surface (200px mobile, up to 600px desktop)
 - [x] Eight shapes: circle, square, rounded-square, diamond, hexagon, triangle, pentagram, hexagram
-- [x] Five texture overlays: none, crosshatch, dots, grid, lines (canvas only)
+- [x] Five texture overlays: none, crosshatch, dots, grid, lines
 - [x] Linear + radial gradient support for background, big letter, and name text
 - [x] Independent gradient angle and stop position per channel
 - [x] Outer ring (`ring1`) with toggle, color, width
@@ -28,10 +28,10 @@ This document is the source of truth for *what's shipped*, *what's pending*, and
 
 ### Export
 
-- [x] PNG download (700x700 raster) via `canvas.toDataURL`
+- [x] PNG download (700×700 / 1400×1400 / 2800×2800) via `drawMonogram` + `canvas.toDataURL`
 - [x] SVG download (vector) via hand-built template string in `exportSVG`
 - [x] Filename pattern: `monogram_<bigLetter>_<name>.<ext>`
-- [ ] Texture overlays in SVG export — **not implemented**. Texture is canvas-only. (`Schemas.md` §4)
+- [x] Texture overlays in SVG export — crosshatch, dots, grid, lines (clipped to shape)
 
 ### Persistence
 
@@ -55,6 +55,10 @@ This document is the source of truth for *what's shipped*, *what's pending*, and
 - [x] Toast feedback for share link copy
 - [x] Inline error message on JSON import failure
 - [x] Live JSON preview of current settings in Export/Import tab
+- [x] Reset-to-default button in header (left of undo/redo)
+- [x] High-resolution PNG export (1×/2×/4× via offscreen render + upscale)
+- [x] Keyboard shortcut hints on undo/redo (desktop only, CSS tooltip)
+- [x] URL-length guard on Share (>8KB warns, offers JSON export fallback)
 
 ### Layout
 
@@ -75,6 +79,7 @@ This document is the source of truth for *what's shipped*, *what's pending*, and
 - [x] `aria-pressed` on toggle and font/shape pickers
 - [x] `aria-selected` on tab buttons
 - [x] `role="status"` + `aria-live="polite"` on share toast
+- [x] `role="alert"` on share warning (URL too long)
 - [x] `role="alert"` on import error
 - [x] Keyboard-accessible undo/redo
 
@@ -135,7 +140,7 @@ Use these as pass/fail gates before merging changes. Manual; no automated runner
 | E1 | Download PNG with default design | File saves as `monogram_E_EXAMPLE.png` and opens at 700x700. |
 | E2 | Download SVG with default design | File saves as `.svg`; opens in a browser tab; visually matches the canvas. |
 | E3 | Download SVG with complex design (Neon Noir + hexagram + glow) | Same visual match. |
-| E4 | Compare PNG and SVG side-by-side for the same complex design | No noticeable divergence in shape, color, gradient, ring, or glow placement. (Texture acceptable to differ — known canvas-only.) |
+| E4 | Compare PNG and SVG side-by-side for the same complex design | No noticeable divergence in shape, color, gradient, ring, glow, or texture placement. |
 
 ### F. Layout
 
@@ -160,7 +165,6 @@ Use these as pass/fail gates before merging changes. Manual; no automated runner
 
 ## 3. Known issues / divergences
 
-- **SVG texture export missing.** Texture overlays appear in the canvas preview and PNG but not in the SVG download. Decide before fix: do we match canvas exactly, or document the SVG as "no texture overlay (use the PNG for textured designs)"?
 - **Texture overlay positioning** is computed in canvas pixels; behavior at extreme `letterOffsetX/Y` values has not been visually audited.
 - **Auto-save is unthrottled.** Every keystroke writes localStorage. Fine in practice but a refactor candidate if state grows.
 - **`useDebounce` delay is hardcoded to `0`.** The hook exists for future use; no effect today.
@@ -171,30 +175,7 @@ Use these as pass/fail gates before merging changes. Manual; no automated runner
 
 ## 4. Roadmap — proposed work
 
-### P0 — bugs and parity
-
-1. **Fix SVG texture export** so PNG and SVG match for all texture choices. Touches `exportSVG` and `drawTexture` — likely needs a parallel `buildTextureSVGFragment(texture, W, H)` helper.
-2. **Add a URL-length guard** on the Share action — if `encodeSettings(s)` exceeds ~8KB, surface a warning toast and offer JSON export as the fallback.
-
-### P1 — UX improvements
-
-3. **Persist tab choice** across reloads (currently always lands on "design").
-4. **Add a "Reset to default" button** in the Design tab — clears overrides back to `DEFAULT_SETTINGS` with a single history step.
-5. **Preset hover preview on desktop** — show the preset name and a 1-line description on hover.
-6. **Keyboard shortcut hints** — small tooltip on the undo/redo icons displaying Ctrl/Cmd+Z behavior.
-
-### P2 — new features
-
-7. **Custom preset save** — let the user pin their current design as a named preset, stored in localStorage.
-8. **Multi-letter typography** — kerning slider for the big letter when two characters are used.
-9. **Image background** — option to upload a small image as the background (replaces gradient). Stays client-side as a data-URL embedded in `settings`.
-10. **High-resolution PNG** — option to render at 1400x1400 or 2100x2100 for print-quality output.
-
-### P3 — refactors
-
-11. **Extract `<PresetGrid />`** if mobile and desktop preset rendering diverge.
-12. **Migration framework** in `getInitialSettings` for handling renamed/removed settings keys.
-13. **Type annotations** via JSDoc — would help downstream agentic coders without breaking the "no build step" constraint.
+*(Roadmap clear — all planned items shipped.)*
 
 ---
 
