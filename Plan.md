@@ -12,7 +12,7 @@ This document is the source of truth for *what's shipped*, *what's pending*, and
 
 - [x] Canvas-based preview at 700x700 internal resolution
 - [x] CSS-scaled responsive preview surface (200px mobile, up to 600px desktop)
-- [x] Eight shapes: circle, square, rounded-square, diamond, hexagon, triangle, pentagram, hexagram
+- [x] Nine shapes: none, circle, square, rounded-square, diamond, hexagon, triangle, pentagram, hexagram
 - [x] "None" shape option — transparent background (no shape, texture, rings, or outline)
 - [x] Five texture overlays: none, crosshatch, dots, grid, lines
 - [x] Linear + radial gradient support for background, big letter, and name text
@@ -103,7 +103,7 @@ Use these as pass/fail gates before merging changes. Manual; no automated runner
 
 | ID | Test | Pass criteria |
 |---|---|---|
-| B1 | Cycle each shape | All 8 shapes render. Each has a matching outline and rings. |
+| B1 | Cycle each shape | All 9 shapes render. "None" shows transparent background. Others have matching outline and rings. |
 | B2 | Cycle each font | All 8 fonts visibly differ. None fall back to a generic system font. |
 | B3 | Cycle each texture | 4 textures show a clearly different overlay pattern; `none` shows no overlay. |
 | B4 | Toggle outer ring | Ring appears / disappears. Inner ring's gap reference behavior is unaffected. |

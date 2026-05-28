@@ -33,7 +33,7 @@ No sign-ups, no premium paywalls, no watermarks, no server-side processing. Ever
 **Design controls**
 
 - Eight curated fonts (Poppins, Playfair SC, Bebas Neue, Cinzel, Dancing Script, Space Mono, Cormorant, Abril Fatface).
-- Eight shape silhouettes (circle, square, rounded-square, diamond, hexagon, triangle, pentagram, hexagram).
+- Nine shape silhouettes (none, circle, square, rounded-square, diamond, hexagon, triangle, pentagram, hexagram).
 - Five texture overlays (none, crosshatch, dots, grid, lines).
 - Independent gradient control for background, big letter, and name — linear or radial, custom angle and stop position.
 - Inner + outer rings with independent width, color, and gap.

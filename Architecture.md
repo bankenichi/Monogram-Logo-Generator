@@ -155,10 +155,10 @@ The single function that owns the render. Draws into a fixed `700 x 700` coordin
 Order of operations:
 
 1. **Clear** the canvas.
-2. **Background fill** — `createDynamicGradient(...)` produces either a linear gradient (using `bgGradientAngle`) or a radial gradient (centered, scaled by `bgGradientStop`). Filled inside the shape clip.
-3. **Texture overlay** — `drawTexture(ctx, texture, W, H)` paints a low-opacity pattern inside the clip (crosshatch / dots / grid / lines / none).
-4. **Outer ring** — drawn around the shape edge if `showRing1`.
-5. **Inner ring** — drawn inset by `ring1Gap` if `showRing2`.
+2. **Background fill** — `createDynamicGradient(...)` produces either a linear gradient (using `bgGradientAngle`) or a radial gradient (centered, scaled by `bgGradientStop`). Filled inside the shape clip. Skipped when `shape === "none"`.
+3. **Texture overlay** — `drawTexture(ctx, texture, W, H)` paints a low-opacity pattern inside the clip (crosshatch / dots / grid / lines / none). Skipped when `shape === "none"`.
+4. **Outer ring** — drawn around the shape edge if `showRing1`. Skipped when `shape === "none"`.
+5. **Inner ring** — drawn inset by `ring1Gap` if `showRing2`. Skipped when `shape === "none"`.
 6. **Big letter** — `getFontString(fontFamily, 900, letterSize)`, optionally with `outlineWidth` stroke and a multi-pass shadow for glow.
 7. **Big letter gradient fill** — `createDynamicGradient` on `kTop`/`kBot` clipped to the text path.
 8. **Name text** — same treatment with `letterSpacing` between characters, scaled by `nameSize`, vertically offset by `nameOffsetY`.
