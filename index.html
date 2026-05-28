@@ -30,6 +30,14 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Typr.js: in-browser font parser. Used only at SVG-export time to
+       convert big-letter + name text into vector <path> elements so the
+       exported SVG is fully font-independent. Handles WOFF2 natively. -->
+  <script src="https://unpkg.com/wawoff2@2.0.1/build/decompress_binding.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/gh/photopea/Typr.js@master/src/Typr.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/photopea/Typr.js@master/src/Typr.U.js"></script>
 </head>
 <body>
   <div id="root"></div>
@@ -526,6 +534,114 @@
       ctx.letterSpacing = "0px";
     }
 
+    // ── Font loader for SVG path conversion ──
+    // Maps font family → woff2 path. Each entry matches the @font-face block in <head>.
+    // For Poppins we point at the 900-weight file because the big letter is rendered at weight 900.
+    const FONT_FILES = {
+      "Poppins":           "./fonts/poppins-v24-latin-900.woff2",
+      "Playfair Display":  "./fonts/playfair-display-sc-v18-latin-700.woff2",
+      "Bebas Neue":        "./fonts/bebas-neue-v16-latin-regular.woff2",
+      "Cinzel":            "./fonts/cinzel-v26-latin-700.woff2",
+      "Dancing Script":    "./fonts/dancing-script-v29-latin-700.woff2",
+      "Space Mono":        "./fonts/space-mono-v17-latin-700.woff2",
+      "Cormorant Upright": "./fonts/cormorant-upright-v19-latin-700.woff2",
+      "Abril Fatface":     "./fonts/abril-fatface-v25-latin-regular.woff2",
+    };
+
+    // Cache parsed Typr font objects. fetch+parse runs at most once per family.
+    const _parsedFontCache = new Map();
+    async function loadParsedFont(fontFamily) {
+      if (_parsedFontCache.has(fontFamily)) return _parsedFontCache.get(fontFamily);
+      if (typeof Typr === "undefined") throw new Error("Typr.js not loaded");
+      
+      const path = FONT_FILES[fontFamily] || FONT_FILES["Poppins"];
+      const resp = await fetch(path);
+      if (!resp.ok) throw new Error(`Font fetch failed: ${path} (${resp.status})`);
+      
+      const buffer = await resp.arrayBuffer();
+      
+      // Ensure the WebAssembly module has loaded globally
+      if (typeof Module === "undefined" || !Module.decompress) {
+        throw new Error("wawoff2 WASM module (Module) is not ready or loaded.");
+      }
+      
+      // Decompress the .woff2 bytes
+      const decompressedData = Module.decompress(new Uint8Array(buffer));
+      
+      // CRITICAL: Clone the data out of the WebAssembly heap allocation 
+      // into a fresh, exact-sized ArrayBuffer for Typr to read safely
+      const cleanBuffer = Uint8Array.from(decompressedData).buffer;
+      
+      const parsed = Typr.parse(cleanBuffer);
+      
+      // Typr.parse returns an array for font collections; standalone fonts return a single-item array
+      const font = Array.isArray(parsed) ? parsed[0] : parsed;
+      _parsedFontCache.set(fontFamily, font);
+      return font;
+    }
+
+    // Render `text` as a single SVG <path> element (one combined d string so a single
+    // gradient/fill spans the whole text run, matching the original <text> behavior).
+    // Returns { pathD, width } in user-space (px) coordinates relative to the
+    // requested baseline at (baselineX, baselineY) and horizontal anchor.
+    //
+    //   anchor: "start" | "middle" | "end"
+    //   letterSpacing: extra px inserted between each glyph (matches canvas/SVG letter-spacing)
+    function textToCombinedPathD(font, text, fontSize, baselineX, baselineY, letterSpacing = 0, anchor = "middle") {
+      const unitsPerEm = font.head.unitsPerEm;
+      const scale = fontSize / unitsPerEm;
+      const letterSpacingUnits = letterSpacing / scale;
+
+      // Walk codepoints (handles BMP-only — full surrogate-pair support not needed for
+      // the names + Latin letters this app supports).
+      const glyphs = [];
+      let advanceTotal = 0;
+      for (const ch of text) {
+        const cp = ch.codePointAt(0);
+        const gid = Typr.U.codeToGlyph(font, cp);
+        const gpath = Typr.U.glyphToPath(font, gid);
+        const aWidth = (font.hmtx && font.hmtx.aWidth && font.hmtx.aWidth[gid] != null)
+          ? font.hmtx.aWidth[gid] : 0;
+        glyphs.push({ gpath, aWidth });
+        advanceTotal += aWidth + letterSpacingUnits;
+      }
+      // Trailing letter-spacing shouldn't widen the run
+      if (glyphs.length > 0) advanceTotal -= letterSpacingUnits;
+
+      const totalWidthPx = advanceTotal * scale;
+
+      // Merge each glyph's path into one cmds/crds pair, with each glyph's coordinates
+      // translated by the running advance cursor (in font units). After merge we apply
+      // a single outer transform (translate + scale flip) when assembling the SVG.
+      const mergedCmds = [];
+      const mergedCrds = [];
+      let xCursor = 0;
+      for (const { gpath, aWidth } of glyphs) {
+        if (gpath && gpath.cmds && gpath.crds) {
+          for (let i = 0; i < gpath.cmds.length; i++) mergedCmds.push(gpath.cmds[i]);
+          for (let i = 0; i < gpath.crds.length; i += 2) {
+            mergedCrds.push(gpath.crds[i] + xCursor);
+            mergedCrds.push(gpath.crds[i + 1]);
+          }
+        }
+        xCursor += aWidth + letterSpacingUnits;
+      }
+
+      const pathD = Typr.U.pathToSVG({ cmds: mergedCmds, crds: mergedCrds }, 2);
+
+      // Horizontal anchor offset in px
+      let xOffsetPx = 0;
+      if (anchor === "middle") xOffsetPx = -totalWidthPx / 2;
+      else if (anchor === "end") xOffsetPx = -totalWidthPx;
+
+      // The combined path is in font units, y-axis up. We need it positioned at
+      // (baselineX + xOffsetPx, baselineY) in SVG coordinates (y-axis down).
+      // Transform = translate(...) scale(scale, -scale) applied via SVG transform attribute.
+      const tx = baselineX + xOffsetPx;
+      const ty = baselineY;
+      return { pathD, width: totalWidthPx, tx, ty, scale };
+    }
+
     // ── SVG Export ──
     function buildShapeSVGPath(shape, cx, cy, R) {
       switch(shape) {
@@ -578,88 +694,156 @@
       }
     }
 
-    function exportSVG(settings) {
+    async function exportSVG(settings) {
       const {
         bigLetter, name, shape,
         bgTop, bgBot, bgGradientType, bgGradientAngle, bgGradientStop,
         kTop, kBot, kGradientType, kGradientAngle, kGradientStop,
-        nameTop, nameBot,
+        nameTop, nameBot, nameGradientType, nameGradientAngle, nameGradientStop,
         outlineColor, ring1, ring2, ring1Width, ring2Width, ring1Gap, showRing1, showRing2,
         glow, glowColor, glowIntensity,
         letterSize, nameSize, letterSpacing, outlineWidth, nameOffsetY,
-        fontFamily,
+        letterOffsetX, letterOffsetY,
+        fontFamily, texture,
       } = settings;
 
       const W = 700, H = 700, cx = 350, cy = 350, R = 334;
       const font = FONTS.find(f => f.family === fontFamily) || FONTS[0];
-      const kY = cy + letterSize * 0.355;
-      const nameY = cy + nameSize * 0.355 + (nameOffsetY || 0);
 
-      const bgGradAngle = bgGradientAngle || 90;
-      const bgAngleRad = bgGradAngle * Math.PI / 180;
-      const kAngleRad = (kGradientType === "linear") ? ((settings.kGradientAngle || 90) * Math.PI / 180) : 0;
-      const nAngleRad = (settings.nameGradientType === "linear") ? ((settings.nameGradientAngle || 90) * Math.PI / 180) : 0;
+      // Canvas uses weight 900 for big letter, font.weight for name — match that exactly
+      const letterWeight = 900;
+      const nameWeight = font.weight;
+
+      const kX = cx + (letterOffsetX || 0);
+      const kY = cy + letterSize * 0.355 + (letterOffsetY || 0);
+      const nameY = cy + nameSize * 0.355 + (nameOffsetY || 0);
+      const nameX = cx + (letterSpacing / 2);
 
       const shapePath = buildShapeSVGPath(shape, cx, cy, R);
       const ring2R = R - (ring1Gap || 18);
 
+      // Gradient helper — respects linear vs radial for all three gradients
+      function buildGradientDef(id, type, angle, stop, topColor, botColor) {
+        const stopVal = stop || 100;
+        if (type === "radial") {
+          return `<radialGradient id="${id}" cx="50%" cy="50%" r="50%" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="${topColor}"/>
+      <stop offset="${stopVal}%" stop-color="${botColor}"/>
+      ${stopVal < 100 ? `<stop offset="100%" stop-color="${botColor}"/>` : ""}
+    </radialGradient>`;
+        }
+        return `<linearGradient id="${id}" gradientTransform="rotate(${angle || 90}, 0.5, 0.5)" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="${topColor}"/>
+      <stop offset="${stopVal}%" stop-color="${botColor}"/>
+      ${stopVal < 100 ? `<stop offset="100%" stop-color="${botColor}"/>` : ""}
+    </linearGradient>`;
+      }
+
+      // Glow filter — tinted with glowColor, multi-pass like canvas shadow layers
       const glowFilter = glow ? `
-        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="${20 * glowIntensity}" result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>` : "";
+    <filter id="glowFilter" x="-60%" y="-60%" width="220%" height="220%">
+      <feFlood flood-color="${glowColor}" flood-opacity="0.5" result="color"/>
+      <feComposite in="color" in2="SourceGraphic" operator="in" result="coloredSrc"/>
+      <feGaussianBlur in="coloredSrc" stdDeviation="${40 * (glowIntensity || 1)}" result="blur1"/>
+      <feGaussianBlur in="coloredSrc" stdDeviation="${18 * (glowIntensity || 1)}" result="blur2"/>
+      <feGaussianBlur in="coloredSrc" stdDeviation="${8 * (glowIntensity || 1)}" result="blur3"/>
+      <feMerge>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur3"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>` : "";
+
+      // Texture patterns — clipped to shape on the background rect only
+      function buildTexturePattern() {
+        if (!texture || texture === "none") return "";
+        switch (texture) {
+          case "crosshatch":
+            return `<pattern id="texPattern" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="28" x2="28" y2="0" stroke="rgba(255,255,255,0.055)" stroke-width="0.75"/>
+      <line x1="0" y1="0" x2="28" y2="28" stroke="rgba(255,255,255,0.055)" stroke-width="0.75"/>
+    </pattern>`;
+          case "dots":
+            return `<pattern id="texPattern" x="0" y="0" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="11" cy="11" r="1.5" fill="rgba(255,255,255,0.045)"/>
+    </pattern>`;
+          case "grid":
+            return `<pattern id="texPattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+    </pattern>`;
+          case "lines":
+            return `<pattern id="texPattern" x="0" y="0" width="18" height="18" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="18" x2="18" y2="0" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+    </pattern>`;
+          default: return "";
+        }
+      }
+      const texturePattern = buildTexturePattern();
+      // Texture rect uses clip-path — background only, same as canvas ctx.clip() scope
+      const textureOverlay = (texturePattern && texture !== "none")
+        ? `\n  <!-- Texture overlay -->\n  <rect x="0" y="0" width="${W}" height="${H}" fill="url(#texPattern)" clip-path="url(#shapeClip)"/>`
+        : "";
+
+      // Convert big letter + name to outline <path>s via Typr.js. If anything fails
+      // (Typr not loaded, font fetch error, parse error), fall back to <text> so the
+      // export still produces a usable file — it just won't be font-independent.
+      let bigLetterSVG = "";
+      let nameSVG = "";
+      try {
+        const parsedFont = await loadParsedFont(font.family);
+        const big  = textToCombinedPathD(parsedFont, bigLetter || "", letterSize, kX, kY, 0, "middle");
+        const nm   = textToCombinedPathD(parsedFont, name || "",      nameSize,   cx, nameY, letterSpacing, "middle");
+
+        bigLetterSVG = `<g transform="translate(${big.tx} ${big.ty}) scale(${big.scale} ${-big.scale})">
+    <path d="${big.pathD}" fill="url(#kGrad)" ${glow ? 'filter="url(#glowFilter)"' : ""}/>
+  </g>`;
+
+        // Name: stroke + fill via paint-order so the outline sits behind the fill,
+        // matching canvas behavior. Stroke width is in user-space px and must be divided
+        // by scale before being applied inside the scaled group — but `vector-effect`
+        // keeps it constant in screen space regardless, which is what we want.
+        nameSVG = `<g transform="translate(${nm.tx} ${nm.ty}) scale(${nm.scale} ${-nm.scale})">
+    <path d="${nm.pathD}"
+      fill="url(#nameGrad)"
+      stroke="${outlineColor}"
+      stroke-width="${outlineWidth / nm.scale}"
+      stroke-linejoin="round"
+      paint-order="stroke fill"/>
+  </g>`;
+      } catch (err) {
+        console.warn("[Monogram] Typr.js font conversion failed; falling back to <text> in SVG.", err);
+        bigLetterSVG = `<text x="${kX}" y="${kY}" text-anchor="middle"
+    font-family="'${font.family}', sans-serif" font-size="${letterSize}" font-weight="${letterWeight}"
+    fill="url(#kGrad)" ${glow ? 'filter="url(#glowFilter)"' : ""}>${bigLetter}</text>`;
+        nameSVG = `<text x="${nameX}" y="${nameY}" text-anchor="middle"
+    font-family="'${font.family}', sans-serif" font-size="${nameSize}" font-weight="${nameWeight}"
+    letter-spacing="${letterSpacing}"
+    stroke="${outlineColor}" stroke-width="${outlineWidth}" stroke-linejoin="round"
+    paint-order="stroke fill" fill="url(#nameGrad)">${name}</text>`;
+      }
 
       const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
   <defs>
-    <linearGradient id="bgGrad" gradientTransform="rotate(${bgGradAngle}, 0.5, 0.5)" gradientUnits="objectBoundingBox">
-      <stop offset="0%" stop-color="${bgTop}"/>
-      <stop offset="${settings.bgGradientStop || 100}%" stop-color="${bgBot}"/>
-    </linearGradient>
-    <linearGradient id="kGrad" gradientTransform="rotate(${settings.kGradientAngle || 90}, 0.5, 0.5)" gradientUnits="objectBoundingBox">
-      <stop offset="0%" stop-color="${kTop}"/>
-      <stop offset="${settings.kGradientStop || 100}%" stop-color="${kBot}"/>
-    </linearGradient>
-    <linearGradient id="nameGrad" gradientTransform="rotate(${settings.nameGradientAngle || 90}, 0.5, 0.5)" gradientUnits="objectBoundingBox">
-      <stop offset="0%" stop-color="${nameTop}"/>
-      <stop offset="${settings.nameGradientStop || 100}%" stop-color="${nameBot}"/>
-    </linearGradient>
+    ${buildGradientDef("bgGrad", bgGradientType, bgGradientAngle, bgGradientStop, bgTop, bgBot)}
+    ${buildGradientDef("kGrad", kGradientType, kGradientAngle, kGradientStop, kTop, kBot)}
+    ${buildGradientDef("nameGrad", nameGradientType, nameGradientAngle, nameGradientStop, nameTop, nameBot)}
     <clipPath id="shapeClip"><path d="${shapePath}"/></clipPath>
-    ${glowFilter}
+    ${texturePattern}${glowFilter}
   </defs>
 
-  <!-- Background -->
-  <path d="${shapePath}" fill="url(#bgGrad)"/>
+  <!-- Background (clipped to shape) -->
+  <path d="${shapePath}" fill="url(#bgGrad)"/>${textureOverlay}
 
-  <!-- Rings -->
+  <!-- Rings (NOT clipped — drawn outside shape same as canvas) -->
   ${showRing1 ? `<path d="${shapePath}" fill="none" stroke="${ring1}" stroke-width="${ring1Width || 5}"/>` : ""}
   ${showRing2 ? `<path d="${buildShapeSVGPath(shape, cx, cy, ring2R)}" fill="none" stroke="${ring2}" stroke-width="${ring2Width || 2}"/>` : ""}
 
-  <!-- Big Letter -->
-  <text
-    x="${cx}" y="${kY}"
-    text-anchor="middle"
-    font-family="'${font.family}', sans-serif"
-    font-size="${letterSize}"
-    font-weight="${font.weight}"
-    fill="url(#kGrad)"
-    ${glow ? `filter="url(#glow)"` : ""}
-    clip-path="url(#shapeClip)"
-  >${bigLetter}</text>
+  <!-- Big Letter (vector paths — font-independent) -->
+  ${bigLetterSVG}
 
-  <!-- Name Text -->
-  <text
-    x="${cx + letterSpacing/2}" y="${nameY}"
-    text-anchor="middle"
-    font-family="'${font.family}', sans-serif"
-    font-size="${nameSize}"
-    font-weight="${font.weight}"
-    letter-spacing="${letterSpacing}"
-    stroke="${outlineColor}"
-    stroke-width="${outlineWidth * 2}"
-    stroke-linejoin="round"
-    fill="url(#nameGrad)"
-    clip-path="url(#shapeClip)"
-  >${name}</text>
+  <!-- Name Text (vector paths — font-independent) -->
+  ${nameSVG}
 </svg>`;
 
       const blob = new Blob([svgContent], { type: "image/svg+xml" });
@@ -900,7 +1084,10 @@
         link.click();
       };
 
-      const downloadSVG = () => exportSVG(settings);
+      const downloadSVG = async () => {
+        try { await exportSVG(settings); }
+        catch (err) { console.error("SVG export failed:", err); }
+      };
 
       const shareURL = () => {
         const encoded = encodeSettings(settings);
