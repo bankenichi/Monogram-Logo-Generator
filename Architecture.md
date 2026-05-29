@@ -340,6 +340,14 @@ Presets-related children of `.canvas-sidebar` are `display: none` at this breakp
 
 Preview shrinks to `180x180`, button padding tightens.
 
+### Wide / low-verticality phones (`@media max-width: 768px and min-aspect-ratio: 0.55`)
+
+Targets short-but-wide viewports (iPhone SE ≈ 0.562, landscape phones, squat windows) where the stacked square preview plus a 58px tab bar consumed nearly the whole screen, leaving the controls panel unusable.
+
+This block (declared **after** the base 768px and 380px blocks so it wins on overlap) flips `.canvas-row` back to `flex-direction: row`: the preview (`.canvas-wrap`) is capped at `max-height: 42dvh` / `max-width: 62%` and the `.canvas-actions` return to a `flex-direction: column` sidebar beside it (`order: 2`, `min-width: 130px`). The `.png-row` stays a horizontal row inside that column. Net effect: the preview no longer claims a full-width square, so the panel below keeps usable room.
+
+Independently, **all** mobile widths now get a slimmer tab bar (`.tabs { height: 42px }`, down from 58px), tighter panel padding (`.panel-content { padding: 14px 16px }`), and reduced row-action button padding (`7px 6px`) to maximize the controls work area.
+
 ---
 
 ## 8. Font loading

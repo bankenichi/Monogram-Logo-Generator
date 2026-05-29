@@ -1444,7 +1444,12 @@
               .canvas-sidebar > .presets { display: none; }
               .canvas-wrap { width: 100%; max-width: 100%; height: auto; flex: none; aspect-ratio: 1 / 1; border-radius: 16px; margin: 0; order: 1; }
               .canvas-actions { display: flex; flex-direction: row; gap: 6px; width: 100%; max-width: 100%; margin-top: 0; flex-shrink: 0; order: 2; }
-              .canvas-actions .btn { flex: 1; padding: 10px 6px; font-size: 11px; min-width: 0; }
+              .canvas-actions .btn { flex: 1; padding: 7px 6px; font-size: 11px; min-width: 0; }
+
+              /* Slimmer tab bar + tighter panel padding give the controls more
+                 working area on every phone (requested for all mobile widths). */
+              .tabs { height: 42px; }
+              .panel-content { padding: 14px 16px; gap: 16px; }
               .png-row { flex: 7; }
               .png-row .btn { flex: 6; font-size: 10px; padding: 10px 4px; }
               .res-select { flex: 1; font-size: 9px; padding: 3px 4px; min-width: 0; }
@@ -1464,6 +1469,23 @@
               .canvas-actions .btn-secondary,
               .canvas-actions .btn-share { flex: 6; }
               .control-row label { min-width: 76px; }
+            }
+
+            /* ── Wide / low-verticality phones (e.g. iPhone SE, Galaxy A35) ──
+               These viewports are short relative to their width, so the
+               stacked square preview + action row eats the whole screen.
+               When the aspect ratio is wide enough, put the action buttons
+               back in a column sidebar beside a height-capped preview so the
+               controls panel keeps usable room below. */
+            @media (max-width: 768px) and (min-aspect-ratio: 0.55) {
+              .canvas-area { flex-shrink: 0; padding: 10px 12px; }
+              .canvas-row { flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: center; gap: 12px; width: 100%; max-width: 100%; }
+              .canvas-wrap { order: 1; width: auto; height: auto; max-height: 42dvh; max-width: 62%; aspect-ratio: 1 / 1; flex: 0 1 auto; margin: 0; }
+              .canvas-actions { order: 2; flex-direction: column; width: auto; min-width: 130px; max-width: 168px; flex: 0 0 auto; gap: 6px; margin-top: 0; }
+              .canvas-actions .btn { flex: none; width: 100%; padding: 8px 10px; }
+              .png-row { flex-direction: row; width: 100%; }
+              .png-row .btn { flex: 6; }
+              .res-select { flex: 1; }
             }
           `}</style>
 
