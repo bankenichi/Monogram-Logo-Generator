@@ -1,3 +1,7 @@
+---
+render_with_liquid: false
+---
+
 # Sprint-Plan.md — 2026-06 (revised)
 
 A planning document for the next major batch of work on Monogram Studio. **Source of truth** for everything being built in this sprint. Once features ship, the canonical info migrates to `Architecture.md`, `Schemas.md`, `Plan.md`, and `Agents.md`.
