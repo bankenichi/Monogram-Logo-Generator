@@ -906,6 +906,7 @@ For each feature, **subtasks are ordered** and **must be completed in order**. E
 - **File:** `index.html`
 - **Location:** Inside the `panel-content` block, AFTER `{tab === "colors" && (<>...</>)}` and BEFORE `{tab === "export/import" && (`.
 - **Insert:**
+  {% raw %}
   ```jsx
   {tab === "randomizer" && (
     <div className="randomizer-tab">
@@ -932,6 +933,7 @@ For each feature, **subtasks are ordered** and **must be completed in order**. E
     </div>
   )}
   ```
+  {% endraw %}
 - **Acceptance:** Selecting the Randomizer tab shows a placeholder note and the Randomize button. Clicking it works exactly like the old global Randomize button.
 
 #### F8a.3 — Remove the global Randomize button at the bottom of panel-content
@@ -1005,7 +1007,7 @@ The old renders use `PRESETS.map(...)`. Replace both with the new 10-slot render
 - **For both locations, replace** the `{PRESETS.map(p => (<PresetThumb .../>))}` block with a single render of all 10 `presetSlots`:
   - If `slot.name` is null: render a muted placeholder element — not a button, not interactive. Visually: a row with a dashed border at reduced opacity, labelled "— Empty slot —". Use `aria-hidden="true"` on it.
   - If `slot.name` is non-null: render a flex row containing:
-    1. A `<PresetThumb>` that calls `applyPreset(slot.settings)` on click. Pass `preset={{ ...slot.settings, name: slot.name }}`.
+    1. A `<PresetThumb>` that calls `applyPreset(slot.settings)` on click. Pass `preset={ { ...slot.settings, name: slot.name } }`.
     2. A ↺ reset button (only when `slot.isShipped && slot.modifiedAt !== null`) — calls `handleResetSlotToShipped(slot.slot)`. Title: `"Restore to shipped \"${slot.originalName}\""`.
     3. A × clear button — calls `handleClearSlot(slot.slot)`. Title: `"Clear this slot"`.
 - **Also insert** the storage warning just inside the expanded section body, before the slot list: render the warning text and a link/note pointing to the Export / Import tab when `hasCustomized` is true. The warning does NOT contain a button itself here — just text directing the user to Export / Import. On mobile the warning and on desktop the warning are identical text; no need to branch.
@@ -1143,6 +1145,7 @@ The Randomizer's `handleRandomize` builds a random settings object. It previousl
 - **File:** `index.html`
 - **Search anchor:** `function ColorRow({ label, value, onChange }) {`
 - **Replace** the entire `ColorRow` function with `ColorPickerRow`:
+  {% raw %}
   ```jsx
   function ColorPickerRow({ label, value, onChange }) {
     const [open, setOpen] = useState(false);
@@ -1211,6 +1214,7 @@ The Randomizer's `handleRandomize` builds a random settings object. It previousl
     );
   }
   ```
+  {% endraw %}
 - **Acceptance:** Component compiles. Not yet swapped in.
 
 #### F11.4 — Swap every `<ColorRow>` usage for `<ColorPickerRow>`
@@ -1385,6 +1389,7 @@ The Randomizer's `handleRandomize` builds a random settings object. It previousl
 - **File:** `index.html`
 - **Location:** Just below `function PresetThumb`.
 - **Insert:**
+  {% raw %}
   ```jsx
   function FontDropdown({ value, onChange, fonts, fontLoaded }) {
     const [open, setOpen] = useState(false);
@@ -1441,6 +1446,7 @@ The Randomizer's `handleRandomize` builds a random settings object. It previousl
     );
   }
   ```
+  {% endraw %}
 - **Acceptance:** Component compiles.
 
 #### F13a.2 — Swap the font grid for the dropdown
@@ -1714,7 +1720,7 @@ The Randomizer's `handleRandomize` builds a random settings object. It previousl
 - **File:** `index.html`
 - **Search anchor:** `<Section title="Glow" sectionKey="glow">` (the one in the Design tab from F6.4).
 - **Delete** the entire Glow `<Section>...</Section>` block from the Design tab.
-- **Also remove** the Big Letter color section's `{settings.glow && <div style={{marginTop: 8}}><ColorPickerRow label="Glow color" ...` block in the Colors tab — glow color is now edited in the Effects tab.
+- **Also remove** the Big Letter color section's `{settings.glow && <div style={ {marginTop: 8} }><ColorPickerRow label="Glow color" ...` block in the Colors tab — glow color is now edited in the Effects tab.
 - **Acceptance:** Design tab no longer shows Glow. Colors tab no longer shows the inline Glow color picker on the Big Letter section.
 
 ---
@@ -1920,6 +1926,7 @@ The Randomizer's `handleRandomize` builds a random settings object. It previousl
 - **File:** `index.html`
 - **Search anchor:** `{tab === "randomizer" && (`
 - **Replace** the entire tab body with:
+  {% raw %}
   ```jsx
   {tab === "randomizer" && (
     <div className="randomizer-tab">
@@ -1967,6 +1974,7 @@ The Randomizer's `handleRandomize` builds a random settings object. It previousl
     </div>
   )}
   ```
+  {% endraw %}
 - **Add** above the return statement in App:
   ```js
   const [randomizerTick, setRandomizerTick] = useState(0);
