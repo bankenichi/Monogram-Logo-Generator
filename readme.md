@@ -29,25 +29,42 @@ No sign-ups, no premium paywalls, no watermarks, no server-side processing. Ever
 - **SVG** export — fully vector, scales infinitely, ideal for print and logos. Font-independent (converts text to paths at export time).
 - **Shareable URLs** — your entire design serialized into the URL hash; send the link, recipient sees the exact same design. Warns if the URL exceeds browser limits and offers JSON export as fallback.
 - **JSON save/load** — back up or hand off a design as a portable `.json` file.
+- **Preset bundle export/import** — export all 10 preset slots as a `.json` bundle for backup or sharing.
 
 **Design controls**
 
-- Eight curated fonts (Poppins, Playfair SC, Bebas Neue, Cinzel, Dancing Script, Space Mono, Cormorant, Abril Fatface).
-- Nine shape silhouettes (none, circle, square, rounded-square, diamond, hexagon, triangle, pentagram, hexagram).
-- Five texture overlays (none, crosshatch, dots, grid, lines).
-- Independent gradient control for background, big letter, and name — linear or radial, custom angle and stop position.
+- **Twenty-four curated fonts** (Poppins, Playfair SC, Bebas Neue, Cinzel, Dancing Script, Space Mono, Cormorant, Abril Fatface, Cinzel Decorative, UnifrakturCook, Pirata One, Audiowide, Black Ops One, Russo One, Caveat, Special Elite, Pacifico, Bungee, Monoton, Bangers, Rye, Silkscreen, Righteous, Merriweather) — dropdown picker with per-font live preview.
+- **Nine shape silhouettes** (none, circle, square, rounded-square, diamond, hexagon, triangle, pentagram, hexagram).
+- **Five texture overlays** (none, crosshatch, dots, grid, lines).
+- **Gradient or solid fill** per color slot (background, big letter, name text) — toggle between gradient and flat color modes.
+- Independent gradient angle and stop position per channel.
 - Inner + outer rings with independent width, color, and gap.
-- Optional glow with adjustable color and intensity.
+- **Glow** with toggle, color, and intensity (big letter and name text).
+- **Drop shadow** with toggle, offset, blur, color, and opacity (big letter and name text).
+- **Emboss / bevel** with toggle, depth, angle, highlight, shadow color, and opacity (big letter).
+- **Letter transformations** — independent scale X/Y, skew X/Y, and rotation on the big letter.
+- **Blend modes + opacity** on the big letter (multiply, screen, overlay, lighten, etc.). The blend composites the letter against the **background only** — glow, drop shadow, and emboss are independent layers and are never tinted by the blend — and canvas/PNG and SVG output match.
+- **Layer stack** — visibility toggles and reorder for Background, Rings, Big Letter, and Name. Effects render in a consistent order (shadow → glow → emboss → fill) across both canvas and SVG.
+- Outline stroke around the shape perimeter.
 - Per-element fine-position offsets and outline strokes.
+
+**Color picker**
+
+- HSV color wheel (hue ring + saturation/value square) with live hex and R/G/B inputs.
+- Click-to-pick or drag-on-wheel for precise color selection.
 
 **Workflow**
 
-- **Six built-in presets** — Royal Gold, Midnight Aurora, Crimson Ember, Arctic Silver, Forest Obsidian, Neon Noir.
-- **Randomize** generator that produces cohesive palettes using HSL theory (analogous / complementary / monochromatic harmonies).
+- **Six built-in presets** — Royal Gold, Midnight Aurora, Crimson Ember, Arctic Silver, Forest Obsidian, Neon Noir (in slots 0–5 of the 10-slot preset system).
+- **10-slot preset system** — save, clear, reset to shipped, and export/import bundles.
+- **Randomize** generator with per-category lock toggles (content, font, shape, texture, bgColor, letterColor, nameColor, outline, rings, typography, effects) plus a one-click **Reset Locks** button.
 - **Undo / redo** with full keyboard shortcuts (Ctrl/Cmd+Z, Ctrl/Cmd+Y, Ctrl/Cmd+Shift+Z) and up to 100 steps of history.
 - **Reset to default** — one-click restore to the default design, with undo support.
-- **Auto-save** — every change persists to `localStorage` so closing the tab doesn't lose work.
+- **Auto-save** — every change persists to `localStorage` so closing the tab doesn't lose work (0ms debounce — writes on every render cycle).
 - Responsive layout — large preview + sidebar on desktop, stacked layout with full-width preview on mobile.
+- **Floating action panel** on canvas (PNG / SVG / Share) with tap-to-hide on mobile.
+- **Collapsible accordion sections** for all control groups (persisted across reloads).
+- **Dedicated Randomizer tab** with per-category lock toggles and a Reset Locks button.
 
 ---
 
@@ -59,9 +76,9 @@ Built as a portable Single Page Application contained entirely in one HTML file.
 - **Babel Standalone** — in-browser JSX compilation.
 - **HTML5 Canvas API** — for live preview and PNG rasterization.
 - **Hand-rolled SVG** — for vector export.
-- **Typr.js** — in-browser font parsing for SVG text-to-path conversion (loaded from CDN at export time).
+- **Typr.js** (pinned to commit `02c1210`) — in-browser font parsing for SVG text-to-path conversion.
 - **Vanilla CSS3** — CSS Grid for desktop layout, Flexbox + `display: contents` for the mobile reflow.
-- **Self-hosted woff2 fonts** — no Google Fonts dependency, works fully offline.
+- **Self-hosted woff2 fonts** (24 families, latin subset) — no Google Fonts dependency, works fully offline.
 
 ---
 
@@ -110,9 +127,10 @@ Deeper docs live alongside this README:
 | File | Purpose |
 |---|---|
 | `Architecture.md` | How the app is built — rendering pipeline, state model, layout system. |
-| `Schemas.md` | The `Settings` shape, preset format, URL hash format, JSON export format. |
-| `Plan.md` | Implementation checklist, testing criteria, and roadmap. |
+| `Schemas.md` | The `Settings` shape, font catalogue, preset slot format, URL hash format, JSON export format. |
+| `Plan.md` | Implementation checklist, testing criteria, and forward roadmap. |
 | `Agents.md` | Guide for agentic coders contributing to the project. |
+| `Sprint-Plan.md` | Current sprint plan with feature specs and acceptance criteria. |
 
 ---
 

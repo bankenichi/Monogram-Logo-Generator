@@ -25,6 +25,23 @@
     @font-face { font-family: 'Space Mono'; font-style: normal; font-weight: 700; src: url('./fonts/space-mono-v17-latin-700.woff2') format('woff2'); }
     @font-face { font-family: 'Cormorant Upright'; font-style: normal; font-weight: 700; src: url('./fonts/cormorant-upright-v19-latin-700.woff2') format('woff2'); }
     @font-face { font-family: 'Abril Fatface'; font-style: normal; font-weight: 400; src: url('./fonts/abril-fatface-v25-latin-regular.woff2') format('woff2'); }
+    @font-face { font-family: 'Cinzel Decorative'; font-style: normal; font-weight: 700; src: url('./fonts/cinzel-decorative-v16-latin-700.woff2') format('woff2'); }
+    @font-face { font-family: 'UnifrakturCook'; font-style: normal; font-weight: 700; src: url('./fonts/unifrakturcook-v17-latin-700.woff2') format('woff2'); }
+    @font-face { font-family: 'Pirata One'; font-style: normal; font-weight: 400; src: url('./fonts/pirata-one-v23-latin-regular.woff2') format('woff2'); }
+    @font-face { font-family: 'Audiowide'; font-style: normal; font-weight: 400; src: url('./fonts/audiowide-v17-latin-regular.woff2') format('woff2'); }
+    @font-face { font-family: 'Black Ops One'; font-style: normal; font-weight: 400; src: url('./fonts/black-ops-one-v19-latin-regular.woff2') format('woff2'); }
+    @font-face { font-family: 'Russo One'; font-style: normal; font-weight: 400; src: url('./fonts/russo-one-v14-latin-regular.woff2') format('woff2'); }
+    @font-face { font-family: 'Caveat'; font-style: normal; font-weight: 700; src: url('./fonts/caveat-v18-latin-700.woff2') format('woff2'); }
+    @font-face { font-family: 'Special Elite'; font-style: normal; font-weight: 400; src: url('./fonts/special-elite-v18-latin-regular.woff2') format('woff2'); }
+    @font-face { font-family: 'Pacifico'; font-style: normal; font-weight: 400; src: url('./fonts/pacifico-v22-latin-regular.woff2') format('woff2'); }
+    @font-face { font-family: 'Bungee'; font-style: normal; font-weight: 400; src: url('./fonts/bungee-latin-regular.woff2') format('woff2'); }
+    @font-face { font-family: 'Monoton'; font-style: normal; font-weight: 400; src: url('./fonts/monoton-latin-regular.woff2') format('woff2'); }
+    @font-face { font-family: 'Bangers'; font-style: normal; font-weight: 400; src: url('./fonts/bangers-latin-regular.woff2') format('woff2'); }
+    @font-face { font-family: 'Rye'; font-style: normal; font-weight: 400; src: url('./fonts/rye-latin-regular.woff2') format('woff2'); }
+    @font-face { font-family: 'Silkscreen'; font-style: normal; font-weight: 400; src: url('./fonts/silkscreen-latin-regular.woff2') format('woff2'); }
+    @font-face { font-family: 'Righteous'; font-style: normal; font-weight: 400; src: url('./fonts/righteous-v17-latin-regular.woff2') format('woff2'); }
+    @font-face { font-family: 'Merriweather'; font-style: normal; font-weight: 700; src: url('./fonts/merriweather-v40-latin-700.woff2') format('woff2'); }
+    @font-face { font-family: 'Merriweather'; font-style: normal; font-weight: 900; src: url('./fonts/merriweather-v40-latin-900.woff2') format('woff2'); }
    </style>
 
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -36,8 +53,8 @@
        exported SVG is fully font-independent. Handles WOFF2 natively. -->
   <script src="https://unpkg.com/wawoff2@2.0.1/build/decompress_binding.js"></script>
 
-  <script src="https://cdn.jsdelivr.net/gh/photopea/Typr.js@master/src/Typr.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/photopea/Typr.js@master/src/Typr.U.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/photopea/Typr.js@02c12105/src/Typr.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/photopea/Typr.js@02c12105/src/Typr.U.js"></script>
 </head>
 <body>
   <div id="root"></div>
@@ -55,6 +72,54 @@
       return debounced;
     }
 
+    // ── UI state (collapsed sections, etc.) — per-device, distinct from design settings ──
+    const UI_STATE_KEY = "monogram-studio-ui-state";
+    function loadUIState() {
+      try {
+        const raw = localStorage.getItem(UI_STATE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch {}
+      return {};
+    }
+    function useUIState() {
+      const [state, setState] = useState(loadUIState);
+      const update = useCallback((path, value) => {
+        setState(prev => {
+          const next = { ...prev };
+          const [bucket, key] = path;
+          next[bucket] = { ...(next[bucket] || {}), [key]: value };
+          try { localStorage.setItem(UI_STATE_KEY, JSON.stringify(next)); } catch {}
+          return next;
+        });
+      }, []);
+      return [state, update];
+    }
+
+    // ── Collapsible section component ──
+    function Section({ title, sectionKey, defaultOpen = false, children }) {
+      const [uiState, updateUI] = useUIState();
+      const stored = uiState.sections?.[sectionKey];
+      const isOpen = stored === undefined ? defaultOpen : stored;
+      const toggle = () => updateUI(["sections", sectionKey], !isOpen);
+      return (
+        <div className={`section section-collapsible ${isOpen ? "open" : "closed"}`}>
+          <button
+            type="button"
+            className="section-header"
+            onClick={toggle}
+            aria-expanded={isOpen}
+            aria-controls={`section-body-${sectionKey}`}
+          >
+            <span className="section-title">{title}</span>
+            <span className="section-chevron" aria-hidden="true">{isOpen ? "▼" : "▶"}</span>
+          </button>
+          <div id={`section-body-${sectionKey}`} className="section-body" hidden={!isOpen}>
+            {children}
+          </div>
+        </div>
+      );
+    }
+
     // ── Font catalogue ──
     const FONTS = [
       { label: "Poppins",          family: "Poppins",          weight: 700, style: "sans-serif"   },
@@ -65,11 +130,27 @@
       { label: "Space Mono",       family: "Space Mono",        weight: 700, style: "mono"         },
       { label: "Cormorant",        family: "Cormorant Upright",  weight: 700, style: "elegant"     },
       { label: "Abril Fatface",    family: "Abril Fatface",     weight: 400, style: "display"      },
+      { label: "Cinzel Decorative",family: "Cinzel Decorative", weight: 700, style: "display"      },
+      { label: "UnifrakturCook",   family: "UnifrakturCook",    weight: 700, style: "blackletter"  },
+      { label: "Pirata One",       family: "Pirata One",        weight: 400, style: "display"      },
+      { label: "Audiowide",        family: "Audiowide",         weight: 400, style: "display"      },
+      { label: "Black Ops One",    family: "Black Ops One",     weight: 400, style: "display"      },
+      { label: "Russo One",        family: "Russo One",         weight: 400, style: "display"      },
+      { label: "Caveat",           family: "Caveat",            weight: 700, style: "handwriting"  },
+      { label: "Special Elite",    family: "Special Elite",     weight: 400, style: "display"      },
+      { label: "Pacifico",         family: "Pacifico",          weight: 400, style: "script"       },
+      { label: "Bungee",           family: "Bungee",            weight: 400, style: "signage"      },
+      { label: "Monoton",          family: "Monoton",           weight: 400, style: "retro"        },
+      { label: "Bangers",          family: "Bangers",           weight: 400, style: "comic"        },
+      { label: "Rye",              family: "Rye",               weight: 400, style: "western"      },
+      { label: "Silkscreen",       family: "Silkscreen",        weight: 400, style: "pixel"        },
+      { label: "Righteous",        family: "Righteous",         weight: 400, style: "display"      },
+      { label: "Merriweather",     family: "Merriweather",      weight: 700, style: "serif"        },
     ];
 
     const TEXTURES = ["none", "crosshatch", "dots", "grid", "lines"];
 
-    const PRESETS = [
+    const SHIPPED_PRESETS = [
       {
         bigLetter: "RG",
         name: "Royal Gold",
@@ -97,9 +178,12 @@
         ring1Gap: 18,
         showRing1: true,
         showRing2: true,
-        glow: true,
-        glowColor: "#ffdc50",
-        glowIntensity: 1,
+        effects: {
+          glow:       { enabled: true,  color: "#ffdc50", intensity: 1 },
+          shadow:     { enabled: true, dx: 4, dy: 4, blur: 8, color: "#000000", opacity: 0.5 },
+          nameGlow:   { enabled: true, color: "#ffc828", intensity: 1.0 },
+          nameShadow: { enabled: true, dx: 3, dy: 3, blur: 6, color: "#000000", opacity: 0.5 }
+        },
         letterSize: 400,
         nameSize: 80,
         letterSpacing: 17,
@@ -136,10 +220,13 @@
         ring2Width: 3,
         ring1Gap: 22,
         showRing1: true,
-        showRing2: true,
-        glow: true,
-        glowColor: "#00dcc8",
-        glowIntensity: 1.2,
+        showRing2: true,        
+        effects: {
+          glow:       { enabled: true,  color: "#7082B9", intensity: 1.2 },
+          shadow:     { enabled: true, dx: 4, dy: 4, blur: 8, color: "#000000", opacity: 0.5 },
+          nameGlow:   { enabled: true, color: "#39CAEA", intensity: 1.0 },
+          nameShadow: { enabled: true, dx: 3, dy: 3, blur: 6, color: "#000000", opacity: 0.5 }
+        },
         letterSize: 380,
         nameSize: 64,
         letterSpacing: 3,
@@ -176,10 +263,13 @@
         ring2Width: 2,
         ring1Gap: 18,
         showRing1: true,
-        showRing2: true,
-        glow: true,
-        glowColor: "#ff6400",
-        glowIntensity: 1,
+        showRing2: true,        
+        effects: {
+          glow:       { enabled: true,  color: "#9C882C", intensity: 1 },
+          shadow:     { enabled: true, dx: 4, dy: 4, blur: 8, color: "#000000", opacity: 0.5 },
+          nameGlow:   { enabled: true, color: "#F5BA94", intensity: 1.0 },
+          nameShadow: { enabled: true, dx: 3, dy: 3, blur: 6, color: "#000000", opacity: 0.5 }
+        },
         letterSize: 590,
         nameSize: 56,
         letterSpacing: 27,
@@ -216,10 +306,13 @@
         ring2Width: 2,
         ring1Gap: 29,
         showRing1: true,
-        showRing2: true,
-        glow: true,
-        glowColor: "#ffffff",
-        glowIntensity: 0.6,
+        showRing2: true,        
+        effects: {
+          glow:       { enabled: true,  color: "#212332", intensity: 0.6 },
+          shadow:     { enabled: true, dx: 4, dy: 4, blur: 8, color: "#000000", opacity: 0.5 },
+          nameGlow:   { enabled: true, color: "#B5D8E6", intensity: 1.0 },
+          nameShadow: { enabled: true, dx: 3, dy: 3, blur: 6, color: "#000000", opacity: 0.5 }
+        },
         letterSize: 340,
         nameSize: 60,
         letterSpacing: 20,
@@ -256,10 +349,13 @@
         ring2Width: 2,
         ring1Gap: 18,
         showRing1: true,
-        showRing2: true,
-        glow: true,
-        glowColor: "#8cdc28",
-        glowIntensity: 0.9,
+        showRing2: true,        
+        effects: {
+          glow:       { enabled: true,  color: "#08BA2C", intensity: 0.9 },
+          shadow:     { enabled: true, dx: 4, dy: 4, blur: 8, color: "#000000", opacity: 0.5 },
+          nameGlow:   { enabled: true, color: "#87FBCE", intensity: 1.0 },
+          nameShadow: { enabled: true, dx: 3, dy: 3, blur: 6, color: "#000000", opacity: 0.5 }
+        },
         letterSize: 410,
         nameSize: 68,
         letterSpacing: 13,
@@ -297,9 +393,12 @@
         ring1Gap: 18,
         showRing1: true,
         showRing2: true,
-        glow: true,
-        glowColor: "#ff00b4",
-        glowIntensity: 1.5,
+        effects: {
+          glow:       { enabled: true,  color: "#DE75FB", intensity: 1.5 },
+          shadow:     { enabled: true, dx: 4, dy: 4, blur: 8, color: "#000000", opacity: 0.5 },
+          nameGlow:   { enabled: true, color: "#BA1D11", intensity: 1.0 },
+          nameShadow: { enabled: true, dx: 3, dy: 3, blur: 6, color: "#000000", opacity: 0.5 }
+        },
         letterSize: 340,
         nameSize: 84,
         letterSpacing: 28,
@@ -330,7 +429,64 @@
       },
     ];
 
+    const PRESET_SLOTS_KEY = "monogram-studio-preset-slots";
+    const TOTAL_PRESET_SLOTS = 10;
+    const SHIPPED_SLOT_COUNT = 6;
+
+    function persistSlots(slots) {
+      try { localStorage.setItem(PRESET_SLOTS_KEY, JSON.stringify(slots)); } catch {}
+    }
+
+    function getOrInitSlots() {
+      try {
+        const raw = localStorage.getItem(PRESET_SLOTS_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length === TOTAL_PRESET_SLOTS && parsed[0]?.slot === 0) return parsed;
+        }
+      } catch {}
+      const slots = [];
+      for (let i = 0; i < TOTAL_PRESET_SLOTS; i++) {
+        if (i < SHIPPED_SLOT_COUNT) {
+          const p = SHIPPED_PRESETS[i];
+          slots.push({ slot: i, name: p.name, settings: { ...p }, isShipped: true, originalName: p.name, modifiedAt: null });
+        } else {
+          slots.push({ slot: i, name: null, settings: null, isShipped: false, originalName: null, modifiedAt: null });
+        }
+      }
+      persistSlots(slots);
+      return slots;
+    }
+
     const SHAPES = ["none", "circle", "square", "rounded-square", "diamond", "hexagon", "triangle", "pentagram", "hexagram"];
+    const BLEND_MODES = ["normal","multiply","screen","overlay","darken","lighten","color-dodge","color-burn","hard-light","soft-light","difference","exclusion","hue","saturation","color","luminosity"];
+
+    const RANDOMIZER_CATEGORIES = {
+      content:     ["bigLetter", "name"],
+      font:        ["fontFamily"],
+      shape:       ["shape"],
+      texture:     ["texture"],
+      bgColor:     ["bgTop", "bgBot", "bgGradientType", "bgGradientAngle", "bgGradientStop", "bgMode"],
+      letterColor: ["kTop", "kBot", "kGradientType", "kGradientAngle", "kGradientStop", "kMode", "letterBlendMode", "letterOpacity"],
+      nameColor:   ["nameTop", "nameBot", "nameGradientType", "nameGradientAngle", "nameGradientStop", "nameMode"],
+      outline:     ["outlineColor", "outlineWidth"],
+      rings:       ["showRing1", "showRing2", "ring1", "ring2", "ring1Width", "ring2Width", "ring1Gap"],
+      typography:  ["letterSize", "nameSize", "letterSpacing", "letterOffsetX", "letterOffsetY", "nameOffsetY", "letterScaleX", "letterScaleY", "letterSkewX", "letterSkewY", "letterRotate"],
+      effects:     ["__effects__"]
+    };
+    const RANDOMIZER_CATEGORY_LABELS = {
+      content: "Content (letter & name)",
+      font: "Font",
+      shape: "Shape",
+      texture: "Texture",
+      bgColor: "Background colors",
+      letterColor: "Big letter colors",
+      nameColor: "Name colors",
+      outline: "Outline",
+      rings: "Rings",
+      typography: "Typography",
+      effects: "Effects (glow / shadow)"
+    };
 
     const DEFAULT_SETTINGS = {
       bigLetter: "E",
@@ -370,6 +526,32 @@
       letterOffsetX: 0,
       letterOffsetY: 0,
       fontFamily: "Poppins",
+      bgMode: "gradient",
+      kMode: "gradient",
+      nameMode: "gradient",
+      effects: {
+        glow:       { enabled: true,  color: "#ffdc50", intensity: 1.0 },
+        nameGlow:   { enabled: true, color: "#ffc828", intensity: 1.0 },
+        shadow:     { enabled: true, dx: 4, dy: 4, blur: 8, color: "#000000", opacity: 0.5 },
+        nameShadow: { enabled: true, dx: 3, dy: 3, blur: 6, color: "#000000", opacity: 0.5 },
+        emboss:     { enabled: false, depth: 3, angle: 135, highlight: "#ffffff", shadow: "#000000", opacity: 0.6 }
+      },
+      // Letter transformations (F19)
+      letterScaleX: 1.0,
+      letterScaleY: 1.0,
+      letterSkewX:  0,
+      letterSkewY:  0,
+      letterRotate: 0,
+      // Blend mode (F16)
+      letterBlendMode: "normal",
+      letterOpacity: 1.0,
+      // Layer stack (F17)
+      layers: [
+        { id: "background", label: "Background", visible: true },
+        { id: "rings",      label: "Rings",      visible: true },
+        { id: "bigLetter",  label: "Big Letter",  visible: true },
+        { id: "name",       label: "Name",        visible: true },
+      ],
       texture: "none",
     };
 
@@ -379,6 +561,44 @@
       const g = parseInt(hex.slice(3,5),16);
       const b = parseInt(hex.slice(5,7),16);
       return [r,g,b];
+    }
+
+    function rgbToHex(r, g, b) {
+      const h = n => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0");
+      return `#${h(r)}${h(g)}${h(b)}`;
+    }
+
+    function hexToHsv(hex) {
+      const [r, g, b] = hexToRgb(hex);
+      const rn = r / 255, gn = g / 255, bn = b / 255;
+      const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
+      const d = max - min;
+      let h = 0;
+      if (d !== 0) {
+        if (max === rn) h = ((gn - bn) / d) % 6;
+        else if (max === gn) h = (bn - rn) / d + 2;
+        else h = (rn - gn) / d + 4;
+        h = (h * 60 + 360) % 360;
+      }
+      const s = max === 0 ? 0 : (d / max) * 100;
+      const v = max * 100;
+      return { h, s, v };
+    }
+
+    function hsvToHex(h, s, v) {
+      s /= 100; v /= 100;
+      const c = v * s;
+      const hp = h / 60;
+      const x = c * (1 - Math.abs(hp % 2 - 1));
+      let r = 0, g = 0, b = 0;
+      if (0 <= hp && hp < 1) [r, g, b] = [c, x, 0];
+      else if (1 <= hp && hp < 2) [r, g, b] = [x, c, 0];
+      else if (2 <= hp && hp < 3) [r, g, b] = [0, c, x];
+      else if (3 <= hp && hp < 4) [r, g, b] = [0, x, c];
+      else if (4 <= hp && hp < 5) [r, g, b] = [x, 0, c];
+      else if (5 <= hp && hp < 6) [r, g, b] = [c, 0, x];
+      const m = v - c;
+      return rgbToHex((r + m) * 255, (g + m) * 255, (b + m) * 255);
     }
 
     function createDynamicGradient(ctx, type, angle, stop, topColor, botColor, cx, cy, rLen, gLen) {
@@ -451,15 +671,19 @@
     function drawMonogram(canvas, settings, exportSize) {
       const {
         bigLetter, name, shape,
-        bgTop, bgBot, bgGradientType, bgGradientAngle, bgGradientStop,
-        kTop, kBot, kGradientType, kGradientAngle, kGradientStop,
-        nameTop, nameBot, nameGradientType, nameGradientAngle, nameGradientStop,
+        bgTop, bgBot, bgGradientType, bgGradientAngle, bgGradientStop, bgMode,
+        kTop, kBot, kGradientType, kGradientAngle, kGradientStop, kMode,
+        nameTop, nameBot, nameGradientType, nameGradientAngle, nameGradientStop, nameMode,
         outlineColor, ring1, ring2, ring1Width, ring2Width, ring1Gap, showRing1, showRing2,
-        glow, glowColor, glowIntensity,
         letterSize, nameSize, letterSpacing, outlineWidth, nameOffsetY,
         letterOffsetX, letterOffsetY,
         fontFamily, texture,
       } = settings;
+
+      const glowEffect = settings.effects?.glow || {};
+      const glow         = glowEffect.enabled   ?? settings.glow;
+      const glowColor    = glowEffect.color     ?? settings.glowColor;
+      const glowIntensity = glowEffect.intensity ?? settings.glowIntensity;
 
       const W = 700, H = 700;
       const size = exportSize || 700;
@@ -470,72 +694,242 @@
 
       const cx = W/2, cy = H/2, R = W/2 - 16;
 
-      // Background
-      if (shape !== "none") {
-        ctx.save();
-        clipShape(ctx, shape, cx, cy, R);
-        const bgGrad = createDynamicGradient(ctx, bgGradientType, bgGradientAngle, bgGradientStop, bgTop, bgBot, cx, cy, H*0.7, H);
-        ctx.fillStyle = bgGrad;
-        ctx.fill();
-
-        // Texture overlay (clipped inside shape)
-        drawTexture(ctx, texture, W, H);
-        ctx.restore();
-
-        // Rings
-        if (showRing1) strokeShape(ctx, shape, cx, cy, R, ring1, ring1Width || 5);
-        if (showRing2) strokeShape(ctx, shape, cx, cy, R - (ring1Gap || 18), ring2, ring2Width || 2);
-      }
-
-      // Big letter
-      const letterFont = getFontString(fontFamily, 900, letterSize);
-      ctx.font = letterFont;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "alphabetic";
-      const kX = cx + (letterOffsetX || 0);
-      const kY = cy + (letterSize * 0.355) + (letterOffsetY || 0);
-
-      if (glow) {
-        const glowRgb = hexToRgb(glowColor);
-        for (const [rad, alpha] of [[32,0.12],[18,0.2],[8,0.35]]) {
+      // Layer draw functions — each operates on the shared ctx
+      const drawBackground = () => {
+        if (shape !== "none") {
           ctx.save();
-          ctx.shadowColor = `rgba(${glowRgb[0]},${glowRgb[1]},${glowRgb[2]},${alpha * glowIntensity})`;
-          ctx.shadowBlur = rad * glowIntensity * 2;
-          ctx.fillStyle = `rgba(${glowRgb[0]},${glowRgb[1]},${glowRgb[2]},0)`;
-          ctx.fillText(bigLetter, kX, kY);
+          clipShape(ctx, shape, cx, cy, R);
+          ctx.fillStyle = bgMode === "solid" ? bgTop : createDynamicGradient(ctx, bgGradientType, bgGradientAngle, bgGradientStop, bgTop, bgBot, cx, cy, H*0.7, H);
+          ctx.fill();
+          drawTexture(ctx, texture, W, H);
           ctx.restore();
         }
+      };
+
+      const drawRings = () => {
+        if (shape !== "none") {
+          if (showRing1) strokeShape(ctx, shape, cx, cy, R, ring1, ring1Width || 5);
+          if (showRing2) strokeShape(ctx, shape, cx, cy, R - (ring1Gap || 18), ring2, ring2Width || 2);
+        }
+      };
+
+      const drawBigLetter = () => {
+        const letterFont = getFontString(fontFamily, 900, letterSize);
+        ctx.font = letterFont;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        const kX = cx + (letterOffsetX || 0);
+        const kY = cy + (letterSize * 0.355) + (letterOffsetY || 0);
+        // Visual center of the letter (midpoint of cap height ≈ 0.7×fontSize).
+        // Transform (rotate/scale/skew) pivots around this point instead of the
+        // baseline, matching the SVG path bounding-box center.
+        const bigCY = kY - letterSize * 0.35;
+
         ctx.save();
-        ctx.shadowColor = `rgba(${glowRgb[0]},${glowRgb[1]},${glowRgb[2]},0.5)`;
-        ctx.shadowBlur = 40 * glowIntensity;
-        ctx.fillStyle = glowColor;
-        ctx.fillText(bigLetter, kX, kY);
-        ctx.restore();
+        ctx.translate(kX, bigCY);
+        ctx.rotate((settings.letterRotate || 0) * Math.PI / 180);
+        ctx.scale(settings.letterScaleX || 1, settings.letterScaleY || 1);
+        const skewX = Math.tan((settings.letterSkewX || 0) * Math.PI / 180);
+        const skewY = Math.tan((settings.letterSkewY || 0) * Math.PI / 180);
+        ctx.transform(1, skewY, skewX, 1, 0, 0);
+
+        // Baseline offset: the origin is now at the visual center (bigCY),
+        // but textBaseline="alphabetic" expects the baseline position.
+        const baseOff = letterSize * 0.35;
+
+        // Shadow first (bottom-most) so it never covers the glow — matches SVG order.
+        const shadowEffect = settings.effects?.shadow || {};
+        if (shadowEffect.enabled) {
+          const [sr, sg, sb] = hexToRgb(shadowEffect.color || "#000000");
+          ctx.save();
+          ctx.fillStyle = `rgba(${sr}, ${sg}, ${sb}, ${shadowEffect.opacity ?? 0.5})`;
+          ctx.shadowColor = `rgba(${sr}, ${sg}, ${sb}, ${shadowEffect.opacity ?? 0.5})`;
+          ctx.shadowBlur = shadowEffect.blur ?? 8;
+          ctx.shadowOffsetX = shadowEffect.dx ?? 4;
+          ctx.shadowOffsetY = shadowEffect.dy ?? 4;
+          ctx.font = letterFont;
+          ctx.textAlign = "center";
+          ctx.fillText(bigLetter, 0, baseOff);
+          ctx.restore();
+        }
+
+        if (glow) {
+          const glowRgb = hexToRgb(glowColor);
+          for (const [rad, alpha] of [[32,0.75],[18,1.0],[8,1.0]]) {
+            ctx.save();
+            ctx.shadowColor = `rgba(${glowRgb[0]},${glowRgb[1]},${glowRgb[2]},${alpha * glowIntensity})`;
+            ctx.shadowBlur = rad * glowIntensity * 2;
+            ctx.fillStyle = `rgba(${glowRgb[0]},${glowRgb[1]},${glowRgb[2]},0)`;
+            ctx.fillText(bigLetter, 0, baseOff);
+            ctx.restore();
+          }
+          ctx.save();
+          ctx.shadowColor = `rgba(${glowRgb[0]},${glowRgb[1]},${glowRgb[2]},1.0)`;
+          ctx.shadowBlur = 40 * glowIntensity;
+          ctx.fillStyle = glowColor;
+          ctx.fillText(bigLetter, 0, baseOff);
+          ctx.restore();
+        }
+
+        const embossEffect = settings.effects?.emboss || {};
+        if (embossEffect.enabled) {
+          const embossAngle = (embossEffect.angle ?? 135) * Math.PI / 180;
+          const embossDepth = embossEffect.depth ?? 3;
+          const dx = embossDepth * Math.cos(embossAngle);
+          const dy = embossDepth * Math.sin(embossAngle);
+          ctx.font = letterFont;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "alphabetic";
+          ctx.save();
+          ctx.globalAlpha = embossEffect.opacity ?? 0.6;
+          ctx.fillStyle = embossEffect.highlight || "#ffffff";
+          ctx.fillText(bigLetter, -dx, baseOff - dy);
+          ctx.restore();
+          ctx.save();
+          ctx.globalAlpha = embossEffect.opacity ?? 0.6;
+          ctx.fillStyle = embossEffect.shadow || "#000000";
+          ctx.fillText(bigLetter, dx, baseOff + dy);
+          ctx.restore();
+        }
+
+        ctx.restore(); // end glow/shadow/emboss transform wrapper
+
+        // ── Letter fill — blends against the BACKGROUND ONLY ──────────────
+        // The blend mode must NOT interact with the letter's own glow, shadow,
+        // or emboss (those are independent layers, already drawn above). So we
+        // paint a copy of the background into an offscreen buffer, blend the
+        // letter colour onto that copy, mask the buffer down to the glyph, then
+        // composite the resulting opaque letter on top of the effects.
+        {
+          const lb = document.createElement("canvas");
+          lb.width = canvas.width;
+          lb.height = canvas.height;
+          const lbx = lb.getContext("2d");
+          if (size !== 700) lbx.scale(size / 700, size / 700);
+
+          // 1. Background copy (full area — the letter may extend past the shape).
+          //    For shape "none" there is no background, so the letter blends
+          //    against nothing and just keeps its own colour (source-over).
+          const hasBg = shape !== "none";
+          if (hasBg) {
+            lbx.fillStyle = bgMode === "solid"
+              ? bgTop
+              : createDynamicGradient(lbx, bgGradientType, bgGradientAngle, bgGradientStop, bgTop, bgBot, cx, cy, H*0.7, H);
+            lbx.fillRect(0, 0, W, H);
+          }
+
+          // 2. Blend the letter colour onto the background copy.
+          lbx.save();
+          lbx.translate(kX, bigCY);
+          lbx.rotate((settings.letterRotate || 0) * Math.PI / 180);
+          lbx.scale(settings.letterScaleX || 1, settings.letterScaleY || 1);
+          lbx.transform(1, skewY, skewX, 1, 0, 0);
+          lbx.font = letterFont;
+          lbx.textAlign = "center";
+          lbx.textBaseline = "alphabetic";
+          const blend = settings.letterBlendMode;
+          lbx.globalCompositeOperation = (hasBg && blend && blend !== "normal") ? blend : "source-over";
+          lbx.fillStyle = kMode === "solid"
+            ? kTop
+            : createDynamicGradient(lbx, kGradientType, kGradientAngle, kGradientStop, kTop, kBot, 0, 0, H*0.45, H*0.8);
+          lbx.fillText(bigLetter, 0, baseOff);
+
+          // 3. Mask the buffer down to just the glyph shape.
+          lbx.globalCompositeOperation = "destination-in";
+          lbx.fillStyle = "#000";
+          lbx.fillText(bigLetter, 0, baseOff);
+          lbx.restore();
+
+          // 4. Composite the opaque blended glyph on top of the effects.
+          ctx.save();
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.globalAlpha = settings.letterOpacity ?? 1.0;
+          ctx.drawImage(lb, 0, 0);
+          ctx.restore();
+        }
+      };
+
+      const drawName = () => {
+        const nameFont = getFontString(fontFamily, 700, nameSize);
+        ctx.font = nameFont;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        ctx.letterSpacing = `${letterSpacing}px`;
+
+        const nameY = cy + (nameSize * 0.355) + (nameOffsetY || 0);
+        const nameX = cx + (letterSpacing / 2);
+
+        const nameShadowEffect = settings.effects?.nameShadow || {};
+        if (nameShadowEffect.enabled) {
+          const [nsr, nsg, nsb] = hexToRgb(nameShadowEffect.color || "#000000");
+          ctx.save();
+          ctx.fillStyle = `rgba(${nsr}, ${nsg}, ${nsb}, ${nameShadowEffect.opacity ?? 0.5})`;
+          ctx.shadowColor = `rgba(${nsr}, ${nsg}, ${nsb}, ${nameShadowEffect.opacity ?? 0.5})`;
+          ctx.shadowBlur = nameShadowEffect.blur ?? 6;
+          ctx.shadowOffsetX = nameShadowEffect.dx ?? 3;
+          ctx.shadowOffsetY = nameShadowEffect.dy ?? 3;
+          ctx.font = nameFont;
+          ctx.textAlign = "center";
+          ctx.lineJoin = "round";
+          ctx.lineWidth = outlineWidth;
+          ctx.strokeStyle = `rgba(${nsr}, ${nsg}, ${nsb}, ${nameShadowEffect.opacity ?? 0.5})`;
+          ctx.strokeText(name, nameX, nameY);
+          ctx.fillText(name, nameX, nameY);
+          ctx.restore();
+        }
+
+        const nameGlowEffect = settings.effects?.nameGlow || {};
+        if (nameGlowEffect.enabled) {
+          const ngRgb = hexToRgb(nameGlowEffect.color || "#ffc828");
+          const ngIntensity = nameGlowEffect.intensity ?? 1.0;
+          for (const [rad, alpha] of [[24,0.75],[12,1.0],[5,1.0]]) {
+            ctx.save();
+            ctx.shadowColor = `rgba(${ngRgb[0]},${ngRgb[1]},${ngRgb[2]},${alpha * ngIntensity})`;
+            ctx.shadowBlur = rad * ngIntensity * 2;
+            ctx.fillStyle = `rgba(${ngRgb[0]},${ngRgb[1]},${ngRgb[2]},0)`;
+            ctx.fillText(name, nameX, nameY);
+            ctx.restore();
+          }
+          ctx.save();
+          ctx.shadowColor = `rgba(${ngRgb[0]},${ngRgb[1]},${ngRgb[2]},1.0)`;
+          ctx.shadowBlur = 30 * ngIntensity;
+          ctx.fillStyle = nameGlowEffect.color || "#ffc828";
+          ctx.fillText(name, nameX, nameY);
+          ctx.restore();
+        }
+
+        ctx.lineJoin = "round";
+        ctx.lineWidth = outlineWidth * 2;
+        ctx.strokeStyle = outlineColor;
+        ctx.strokeText(name, nameX, nameY);
+
+        const nameGrad = createDynamicGradient(ctx, nameGradientType, nameGradientAngle, nameGradientStop, nameTop, nameBot, cx, nameY - nameSize * 0.35, nameSize*1.5, nameSize*2);
+        ctx.fillStyle = nameGrad;
+        ctx.fillText(name, nameX, nameY);
+        ctx.letterSpacing = "0px";
+      };
+
+      // Layer draw map — background/rings are pinned as a unit (bg always first)
+      const layerDrawFns = {
+        background: drawBackground,
+        rings:      drawRings,
+        bigLetter:  drawBigLetter,
+        name:       drawName,
+      };
+
+      // Draw layers in the user-specified order, skipping hidden ones.
+      // Background is always drawn first (pinned at index 0 in UI).
+      const layers = settings.layers || [
+        { id: "background", visible: true },
+        { id: "rings",      visible: true },
+        { id: "bigLetter",  visible: true },
+        { id: "name",       visible: true },
+      ];
+      for (const layer of layers) {
+        if (layer.visible === false) continue;
+        const fn = layerDrawFns[layer.id];
+        if (fn) fn();
       }
-
-      const kGrad = createDynamicGradient(ctx, kGradientType, kGradientAngle, kGradientStop, kTop, kBot, cx, cy, H*0.45, H*0.8);
-      ctx.fillStyle = kGrad;
-      ctx.fillText(bigLetter, kX, kY);
-
-      // Name text
-      const nameFont = getFontString(fontFamily, 700, nameSize);
-      ctx.font = nameFont;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "alphabetic";
-      ctx.letterSpacing = `${letterSpacing}px`;
-
-      const nameY = cy + (nameSize * 0.355) + (nameOffsetY || 0);
-      const nameX = cx + (letterSpacing / 2);
-
-      ctx.lineJoin = "round";
-      ctx.lineWidth = outlineWidth * 2;
-      ctx.strokeStyle = outlineColor;
-      ctx.strokeText(name, nameX, nameY);
-
-      const nameGrad = createDynamicGradient(ctx, nameGradientType, nameGradientAngle, nameGradientStop, nameTop, nameBot, cx, nameY, nameSize*1.5, nameSize*2);
-      ctx.fillStyle = nameGrad;
-      ctx.fillText(name, nameX, nameY);
-      ctx.letterSpacing = "0px";
     }
 
     // ── Font loader for SVG path conversion ──
@@ -550,6 +944,22 @@
       "Space Mono":        "./fonts/space-mono-v17-latin-700.woff2",
       "Cormorant Upright": "./fonts/cormorant-upright-v19-latin-700.woff2",
       "Abril Fatface":     "./fonts/abril-fatface-v25-latin-regular.woff2",
+      "Cinzel Decorative": "./fonts/cinzel-decorative-v16-latin-700.woff2",
+      "UnifrakturCook":    "./fonts/unifrakturcook-v17-latin-700.woff2",
+      "Pirata One":        "./fonts/pirata-one-v23-latin-regular.woff2",
+      "Audiowide":         "./fonts/audiowide-v17-latin-regular.woff2",
+      "Black Ops One":     "./fonts/black-ops-one-v19-latin-regular.woff2",
+      "Russo One":         "./fonts/russo-one-v14-latin-regular.woff2",
+      "Caveat":            "./fonts/caveat-v18-latin-700.woff2",
+      "Special Elite":     "./fonts/special-elite-v18-latin-regular.woff2",
+      "Pacifico":          "./fonts/pacifico-v22-latin-regular.woff2",
+      "Bungee":            "./fonts/bungee-latin-regular.woff2",
+      "Monoton":           "./fonts/monoton-latin-regular.woff2",
+      "Bangers":           "./fonts/bangers-latin-regular.woff2",
+      "Rye":               "./fonts/rye-latin-regular.woff2",
+      "Silkscreen":        "./fonts/silkscreen-latin-regular.woff2",
+      "Righteous":         "./fonts/righteous-v17-latin-regular.woff2",
+      "Merriweather":      "./fonts/merriweather-v40-latin-900.woff2",
     };
 
     // Cache parsed Typr font objects. fetch+parse runs at most once per family.
@@ -645,8 +1055,16 @@
         mergedCrds[i + 1] = mergedCrds[i + 1] * (-scale) + ty;
       }
 
+      // Compute bounding box from merged coordinates
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (let i = 0; i < mergedCrds.length; i += 2) {
+        const x = mergedCrds[i], y = mergedCrds[i + 1];
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+      }
+
       const pathD = Typr.U.pathToSVG({ cmds: mergedCmds, crds: mergedCrds }, 2);
-      return { pathD, width: totalWidthPx };
+      return { pathD, width: totalWidthPx, centerX: (minX + maxX) / 2, centerY: (minY + maxY) / 2 };
     }
 
     // ── SVG Export ──
@@ -704,15 +1122,21 @@
     async function exportSVG(settings) {
       const {
         bigLetter, name, shape,
-        bgTop, bgBot, bgGradientType, bgGradientAngle, bgGradientStop,
-        kTop, kBot, kGradientType, kGradientAngle, kGradientStop,
-        nameTop, nameBot, nameGradientType, nameGradientAngle, nameGradientStop,
+        bgTop, bgBot, bgGradientType, bgGradientAngle, bgGradientStop, bgMode,
+        kTop, kBot, kGradientType, kGradientAngle, kGradientStop, kMode,
+        nameTop, nameBot, nameGradientType, nameGradientAngle, nameGradientStop, nameMode,
         outlineColor, ring1, ring2, ring1Width, ring2Width, ring1Gap, showRing1, showRing2,
-        glow, glowColor, glowIntensity,
         letterSize, nameSize, letterSpacing, outlineWidth, nameOffsetY,
         letterOffsetX, letterOffsetY,
         fontFamily, texture,
       } = settings;
+
+      const glowEffect = settings.effects?.glow || {};
+      const glow         = glowEffect.enabled   ?? settings.glow;
+      const glowColor    = glowEffect.color     ?? settings.glowColor;
+      const glowIntensity = glowEffect.intensity ?? settings.glowIntensity;
+
+      const shadowEffect = settings.effects?.shadow || {};
 
       const W = 700, H = 700, cx = 350, cy = 350, R = 334;
       const font = FONTS.find(f => f.family === fontFamily) || FONTS[0];
@@ -760,21 +1184,24 @@
           </linearGradient>`;
       }
 
-      // Glow filter — tinted with glowColor, multi-pass like canvas shadow layers
-      const glowFilter = glow ? `
-    <filter id="glowFilter" x="-60%" y="-60%" width="220%" height="220%">
-      <feFlood flood-color="${glowColor}" flood-opacity="0.5" result="color"/>
-      <feComposite in="color" in2="SourceGraphic" operator="in" result="coloredSrc"/>
-      <feGaussianBlur in="coloredSrc" stdDeviation="${40 * (glowIntensity || 1)}" result="blur1"/>
-      <feGaussianBlur in="coloredSrc" stdDeviation="${18 * (glowIntensity || 1)}" result="blur2"/>
-      <feGaussianBlur in="coloredSrc" stdDeviation="${8 * (glowIntensity || 1)}" result="blur3"/>
-      <feMerge>
-        <feMergeNode in="blur1"/>
-        <feMergeNode in="blur2"/>
-        <feMergeNode in="blur3"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>` : "";
+      // Name shadow effect settings for SVG export
+      const nameShadowEffect = settings.effects?.nameShadow || {};
+
+      // ── Name: glow + shadow as blurred paths (same approach as big letter — no clipping) ──
+      const nameNGEnabled = settings.effects?.nameGlow?.enabled;
+
+      // Simple blur filters for name glow layers
+      const nameGlowBlurFilters = nameNGEnabled ? (() => {
+        const ngi = settings.effects.nameGlow.intensity || 1.0;
+        return `
+    <filter id="nameGlowBlur0" x="-200" y="-200" width="1100" height="1100" filterUnits="userSpaceOnUse"><feGaussianBlur stdDeviation="${24 * ngi}"/></filter>
+    <filter id="nameGlowBlur1" x="-200" y="-200" width="1100" height="1100" filterUnits="userSpaceOnUse"><feGaussianBlur stdDeviation="${12 * ngi}"/></filter>
+    <filter id="nameGlowBlur2" x="-200" y="-200" width="1100" height="1100" filterUnits="userSpaceOnUse"><feGaussianBlur stdDeviation="${5  * ngi}"/></filter>
+    <filter id="nameGlowBlur3" x="-200" y="-200" width="1100" height="1100" filterUnits="userSpaceOnUse"><feGaussianBlur stdDeviation="${30 * ngi}"/></filter>`;
+      })() : "";
+      const nameShadowBlurFilter = nameShadowEffect.enabled ? `
+    <filter id="nameShadowBlur" x="-200" y="-200" width="1100" height="1100" filterUnits="userSpaceOnUse"><feGaussianBlur stdDeviation="${nameShadowEffect.blur ?? 6}"/></filter>` : "";
+
 
       // Texture patterns — clipped to shape on the background rect only
       function buildTexturePattern() {
@@ -810,58 +1237,271 @@
       // (Typr not loaded, font fetch error, parse error), fall back to <text> so the
       // export still produces a usable file — it just won't be font-independent.
       let bigLetterSVG = "";
+      let bigLetterPath = "";
       let nameSVG = "";
+
+      // ── Big letter: glow + shadow as blurred paths (no filter wrappers = no clipping) ──
+
+      // Simple blur filters for glow layers — applied to individual <path> elements,
+      // not to <g> wrappers, so the glow output is never clipped by a filter region.
+      const glowBlurFilters = glow ? `
+    <filter id="glowBlur0" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${32 * (glowIntensity || 1)}"/></filter>
+    <filter id="glowBlur1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${18 * (glowIntensity || 1)}"/></filter>
+    <filter id="glowBlur2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${8  * (glowIntensity || 1)}"/></filter>
+    <filter id="glowBlur3" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${40 * (glowIntensity || 1)}"/></filter>` : "";
+      // Shadow blur filter — same approach, blurred path with transform offset
+      const shadowBlurFilter = shadowEffect.enabled ? `
+    <filter id="shadowBlur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${shadowEffect.blur ?? 8}"/></filter>` : "";
+
+      // Blend mode (F16) — CSS mix-blend-mode on the letter path.
+      // feBlend+BackgroundImage is unsupported in most browsers;
+      // mix-blend-mode works in modern browsers for both inline and standalone SVG.
+      const blendMode = settings.letterBlendMode || "normal";
+
+      // Hoist visual center of the big letter so gradient defs and transform
+      // wrappers (outside the try/catch) can reference the bounding-box center
+      // instead of the baseline (kY).
+      let bigCX = kX;
+      let bigCY = kY;
+      let nmCY = nameY;
+      let bigPathD = "";  // hoisted glyph path so the final assembly can build the blend group
+
       try {
         const parsedFont = await loadParsedFont(font.family);
         const big  = textToCombinedPathD(parsedFont, bigLetter || "", letterSize, kX, kY, 0, "middle");
         const nm   = textToCombinedPathD(parsedFont, name || "",      nameSize,   cx, nameY, letterSpacing, "middle");
+        bigCX = big.centerX;
+        bigCY = big.centerY;
+        nmCY = nm.centerY;
+        bigPathD = big.pathD;
 
-        bigLetterSVG = `<path d="${big.pathD}" fill="url(#kGrad)" ${glow ? 'filter="url(#glowFilter)"' : ""}/>`;
+        // Plain letter path. The blend-against-background-only logic is applied in
+        // the final assembly (see bigLetterWrapper) so it exactly mirrors the canvas:
+        // the blend never touches the glow/shadow/emboss, only the background.
+        const bigPath = `<path d="${big.pathD}" fill="${kMode === "solid" ? kTop : "url(#kGrad)"}"/>`;
+
+        // Glow as blurred paths rendered freely under the letter, plus a solid
+        // core fill matching canvas behavior: the last canvas glow pass draws
+        // opaque fillStyle with shadowBlur, producing both soft shadow AND solid
+        // text-shaped fill. Without the solid core, blend modes (multiply etc.)
+        // composite against a weaker backdrop than canvas.
+        let glowSVG = "";
+        if (glow) {
+          const gi = glowIntensity || 1;
+          const glowLayers = [
+            { std: 32 * gi, op: 0.12 * gi },
+            { std: 18 * gi, op: 0.18 * gi },
+            { std: 8 * gi,  op: 0.35 * gi },
+            { std: 40 * gi, op: 0.5 },
+          ];
+          const glowBlurred = glowLayers.map((l, i) =>
+            `<path d="${big.pathD}" fill="${glowColor}" fill-opacity="${l.op}" filter="url(#glowBlur${i})"/>`
+          ).join("\n    ");
+          // Solid unblurred core — matches canvas opaque fillStyle on last glow pass
+          const glowCore = `<path d="${big.pathD}" fill="${glowColor}"/>`;
+          glowSVG = glowBlurred + "\n    " + glowCore;
+        }
+
+        // Shadow as a blurred path (no filter wrapper = no clipping)
+        let shadowSVG = "";
+        if (shadowEffect.enabled) {
+          shadowSVG = `<path d="${big.pathD}" fill="${shadowEffect.color || '#000000'}" fill-opacity="${shadowEffect.opacity ?? 0.5}" filter="url(#shadowBlur)"
+      transform="translate(${shadowEffect.dx ?? 4} ${shadowEffect.dy ?? 4})"/>`;
+        }
+
+        // Emboss offset copies (F18)
+        let embossSVG = "";
+        const embossEffect = settings.effects?.emboss || {};
+        if (embossEffect.enabled) {
+          const eAngle = (embossEffect.angle ?? 135) * Math.PI / 180;
+          const eDepth = embossEffect.depth ?? 3;
+          const edx = (eDepth * Math.cos(eAngle)).toFixed(2);
+          const edy = (eDepth * Math.sin(eAngle)).toFixed(2);
+          const eOp = embossEffect.opacity ?? 0.6;
+          embossSVG = `<path d="${big.pathD}" fill="${embossEffect.highlight || '#ffffff'}" fill-opacity="${eOp}" transform="translate(${-edx} ${-edy})"/>`
+            + "\n    " + `<path d="${big.pathD}" fill="${embossEffect.shadow || '#000000'}" fill-opacity="${eOp}" transform="translate(${edx} ${edy})"/>`;
+        }
+
+        bigLetterSVG = shadowSVG + "\n    " + glowSVG + "\n    " + embossSVG;
+        bigLetterPath = bigPath;
 
         // Name: stroke + fill via paint-order so the outline sits behind the fill,
         // matching canvas behavior. Path is in root SVG coords so stroke-width is
         // direct px (canvas uses outlineWidth * 2).
-        nameSVG = `<path d="${nm.pathD}"
-      fill="url(#nameGrad)"
+        // Name: glow + shadow as blurred paths (same as big letter — no clipping)
+        const namePath = `<path d="${nm.pathD}"
+      fill="${nameMode === "solid" ? nameTop : "url(#nameGrad)"}"
       stroke="${outlineColor}"
       stroke-width="${outlineWidth * 2}"
       stroke-linejoin="round"
       paint-order="stroke fill"/>`;
+        // Name glow as blurred paths + solid core (matches canvas)
+        let nameGlowSVG = "";
+        if (nameNGEnabled) {
+          const ngc = settings.effects.nameGlow.color || "#ffc828";
+          const ngi = settings.effects.nameGlow.intensity || 1.0;
+          const nameGlowLayers = [
+            { std: 24 * ngi, op: 0.45  * ngi },
+            { std: 12 * ngi, op: 0.6  * ngi },
+            { std: 5  * ngi, op: 0.7  * ngi },
+            { std: 30 * ngi, op: 1.0 },
+          ];
+          const nameGlowBlurred = nameGlowLayers.map((l, i) =>
+            `<path d="${nm.pathD}" fill="${ngc}" fill-opacity="${l.op}" filter="url(#nameGlowBlur${i})"/>`
+          ).join("\n    ");
+          const nameGlowCore = `<path d="${nm.pathD}" fill="${ngc}"/>`;
+          nameGlowSVG = nameGlowBlurred + "\n    " + nameGlowCore;
+        }
+        // Name shadow as a blurred path
+        let nameShadowSVG = "";
+        if (nameShadowEffect.enabled) {
+          nameShadowSVG = `<path d="${nm.pathD}" fill="${nameShadowEffect.color || '#000000'}" fill-opacity="${nameShadowEffect.opacity ?? 0.5}" filter="url(#nameShadowBlur)"
+      transform="translate(${nameShadowEffect.dx ?? 3} ${nameShadowEffect.dy ?? 3})"/>`;
+        }
+        nameSVG = nameShadowSVG + "\n    " + nameGlowSVG + "\n    " + namePath;
       } catch (err) {
         console.warn("[Monogram] Typr.js font conversion failed; falling back to <text> in SVG.", err);
-        bigLetterSVG = `<text x="${kX}" y="${kY}" text-anchor="middle"
-    font-family="'${font.family}', sans-serif" font-size="${letterSize}" font-weight="${letterWeight}"
-    fill="url(#kGrad)" ${glow ? 'filter="url(#glowFilter)"' : ""}>${bigLetter}</text>`;
-        nameSVG = `<text x="${nameX}" y="${nameY}" text-anchor="middle"
+        // Emboss fallback (F18) — offset text copies
+        let embossFallbackSVG = "";
+        const embossEffectFB = settings.effects?.emboss || {};
+        if (embossEffectFB.enabled) {
+          const ea = (embossEffectFB.angle ?? 135) * Math.PI / 180;
+          const ed = embossEffectFB.depth ?? 3;
+          const ex = (ed * Math.cos(ea)).toFixed(2);
+          const ey = (ed * Math.sin(ea)).toFixed(2);
+          const eo = embossEffectFB.opacity ?? 0.6;
+          embossFallbackSVG = `<text x="${kX - ex}" y="${kY - ey}" text-anchor="middle" font-family="'${font.family}', sans-serif" font-size="${letterSize}" font-weight="${letterWeight}" fill="${embossEffectFB.highlight || '#ffffff'}" fill-opacity="${eo}">${bigLetter}</text>`
+            + `<text x="${kX + ex}" y="${kY + ey}" text-anchor="middle" font-family="'${font.family}', sans-serif" font-size="${letterSize}" font-weight="${letterWeight}" fill="${embossEffectFB.shadow || '#000000'}" fill-opacity="${eo}">${bigLetter}</text>`;
+        }
+        // Fallback: glow as blurred <text> elements, plus solid core matching canvas
+        let glowFallbackSVG = "";
+        if (glow) {
+          const gi = glowIntensity || 1;
+          const glowLayers = [
+            { std: 32 * gi, op: 0.12 * gi },
+            { std: 18 * gi, op: 0.2  * gi },
+            { std: 8 * gi,  op: 0.35 * gi },
+            { std: 40 * gi, op: 0.5 },
+          ];
+          const glowBlurredFB = glowLayers.map((l, i) =>
+            `<text x="${kX}" y="${kY}" text-anchor="middle" font-family="'${font.family}', sans-serif" font-size="${letterSize}" font-weight="${letterWeight}" fill="${glowColor}" fill-opacity="${l.op}" filter="url(#glowBlur${i})">${bigLetter}</text>`
+          ).join("\n    ");
+          const glowCoreFB = `<text x="${kX}" y="${kY}" text-anchor="middle" font-family="'${font.family}', sans-serif" font-size="${letterSize}" font-weight="${letterWeight}" fill="${glowColor}">${bigLetter}</text>`;
+          glowFallbackSVG = glowBlurredFB + "\n    " + glowCoreFB;
+        }
+        // Fallback: shadow as blurred <text> element
+        let shadowFallbackSVG = "";
+        if (shadowEffect.enabled) {
+          shadowFallbackSVG = `<text x="${kX + (shadowEffect.dx ?? 4)}" y="${kY + (shadowEffect.dy ?? 4)}" text-anchor="middle" font-family="'${font.family}', sans-serif" font-size="${letterSize}" font-weight="${letterWeight}" fill="${shadowEffect.color || '#000000'}" fill-opacity="${shadowEffect.opacity ?? 0.5}" filter="url(#shadowBlur)">${bigLetter}</text>`;
+        }
+        const bigBlendFallbackStyle = blendMode !== "normal" ? ` style="mix-blend-mode:${blendMode}"` : "";
+        // Effects in a transformed group; letter text outside for correct blend stacking
+        const fallbackLetterText = `<text x="${kX}" y="${kY}" text-anchor="middle" font-family="'${font.family}', sans-serif" font-size="${letterSize}" font-weight="${letterWeight}" fill="${kMode === "solid" ? kTop : "url(#kGrad)"}"${bigBlendFallbackStyle}>${bigLetter}</text>`;
+        const fallbackEffects = shadowFallbackSVG + "\n    " + glowFallbackSVG + "\n    " + embossFallbackSVG;
+        bigLetterSVG = fallbackEffects
+          ? `<g transform="translate(${bigCX} ${bigCY}) rotate(${settings.letterRotate || 0}) scale(${settings.letterScaleX || 1} ${settings.letterScaleY || 1}) skewX(${settings.letterSkewX || 0}) skewY(${settings.letterSkewY || 0}) translate(${-bigCX} ${-bigCY})">\n    ${fallbackEffects}\n  </g>\n  ${fallbackLetterText}`
+          : fallbackLetterText;
+        const nameFallback = `<text x="${nameX}" y="${nameY}" text-anchor="middle"
     font-family="'${font.family}', sans-serif" font-size="${nameSize}" font-weight="${nameWeight}"
     letter-spacing="${letterSpacing}"
     stroke="${outlineColor}" stroke-width="${outlineWidth * 2}" stroke-linejoin="round"
-    paint-order="stroke fill" fill="url(#nameGrad)">${name}</text>`;
+    paint-order="stroke fill" fill="${nameMode === "solid" ? nameTop : "url(#nameGrad)"}">${name}</text>`;
+        // Fallback: name glow as blurred <text> elements + solid core
+        let nameGlowFallbackSVG = "";
+        if (nameNGEnabled) {
+          const ngc = settings.effects.nameGlow.color || "#ffc828";
+          const ngi = settings.effects.nameGlow.intensity || 1.0;
+          const nameGlowLayers = [
+            { std: 24 * ngi, op: 0.45  * ngi },
+            { std: 12 * ngi, op: 0.6  * ngi },
+            { std: 5  * ngi, op: 0.7  * ngi },
+            { std: 30 * ngi, op: 1.0 },
+          ];
+          const nameGlowBlurredFB = nameGlowLayers.map((l, i) =>
+            `<text x="${nameX}" y="${nameY}" text-anchor="middle" font-family="'${font.family}', sans-serif" font-size="${nameSize}" font-weight="${nameWeight}" letter-spacing="${letterSpacing}" fill="${ngc}" fill-opacity="${l.op}" filter="url(#nameGlowBlur${i})">${name}</text>`
+          ).join("\n    ");
+          const nameGlowCoreFB = `<text x="${nameX}" y="${nameY}" text-anchor="middle" font-family="'${font.family}', sans-serif" font-size="${nameSize}" font-weight="${nameWeight}" letter-spacing="${letterSpacing}" fill="${ngc}">${name}</text>`;
+          nameGlowFallbackSVG = nameGlowBlurredFB + "\n    " + nameGlowCoreFB;
+        }
+        // Fallback: name shadow as blurred <text> element
+        let nameShadowFallbackSVG = "";
+        if (nameShadowEffect.enabled) {
+          nameShadowFallbackSVG = `<text x="${nameX + (nameShadowEffect.dx ?? 3)}" y="${nameY + (nameShadowEffect.dy ?? 3)}" text-anchor="middle" font-family="'${font.family}', sans-serif" font-size="${nameSize}" font-weight="${nameWeight}" letter-spacing="${letterSpacing}" fill="${nameShadowEffect.color || '#000000'}" fill-opacity="${nameShadowEffect.opacity ?? 0.5}" filter="url(#nameShadowBlur)">${name}</text>`;
+        }
+        nameSVG = nameShadowFallbackSVG + "\n    " + nameGlowFallbackSVG + "\n    " + nameFallback;
       }
 
       const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
   <defs>
-    ${buildGradientDef("bgGrad",   bgGradientType,   bgGradientAngle,   bgGradientStop,   bgTop,   bgBot,   cx,    cy,     H*0.7,       H)}
-    ${buildGradientDef("kGrad",    kGradientType,    kGradientAngle,    kGradientStop,    kTop,    kBot,    cx,    cy,     H*0.45,      H*0.8)}
-    ${buildGradientDef("nameGrad", nameGradientType, nameGradientAngle, nameGradientStop, nameTop, nameBot, cx,    nameY,  nameSize*1.5, nameSize*2)}
+    ${bgMode !== "solid" ? buildGradientDef("bgGrad",   bgGradientType,   bgGradientAngle,   bgGradientStop,   bgTop,   bgBot,   cx,    cy,     H*0.7,       H) : ""}
+    ${kMode !== "solid" ? buildGradientDef("kGrad",    kGradientType,    kGradientAngle,    kGradientStop,    kTop,    kBot,    bigCX,    bigCY,     H*0.45,      H*0.8) : ""}
+    ${nameMode !== "solid" ? buildGradientDef("nameGrad", nameGradientType, nameGradientAngle, nameGradientStop, nameTop, nameBot, cx,    nmCY,  nameSize*1.5, nameSize*2) : ""}
     <clipPath id="shapeClip"><path d="${shapePath}"/></clipPath>
-    ${texturePattern}${glowFilter}
+    ${texturePattern}${glowBlurFilters}${shadowBlurFilter}${nameGlowBlurFilters}${nameShadowBlurFilter}
   </defs>
 
-  ${shape !== "none" ? `
-  <!-- Background (clipped to shape) -->
-  <path d="${shapePath}" fill="url(#bgGrad)"/>${textureOverlay}
+  ${(() => {
+    // Build layer SVG fragments
+    const bgSVG = shape !== "none"
+      ? `<path d="${shapePath}" fill="${bgMode === "solid" ? bgTop : "url(#bgGrad)"}"/>${textureOverlay}`
+      : "";
+    const ringsSVG = [
+      showRing1 ? `<path d="${shapePath}" fill="none" stroke="${ring1}" stroke-width="${ring1Width || 5}"/>` : "",
+      showRing2 ? `<path d="${buildShapeSVGPath(shape, cx, cy, ring2R)}" fill="none" stroke="${ring2}" stroke-width="${ring2Width || 2}"/>` : "",
+    ].join("\n  ");
+    // Effects (glow/shadow/emboss) go in a transformed group BELOW the letter.
+    // The letter fill is then composited on top, blended against the BACKGROUND
+    // ONLY — exactly mirroring the canvas offscreen-buffer technique, so the
+    // blend mode never interacts with the letter's own glow/shadow/emboss.
+    const bigLetterTransform = `translate(${bigCX} ${bigCY}) rotate(${settings.letterRotate || 0}) scale(${settings.letterScaleX || 1} ${settings.letterScaleY || 1}) skewX(${settings.letterSkewX || 0}) skewY(${settings.letterSkewY || 0}) translate(${-bigCX} ${-bigCY})`;
+    let bigLetterWrapper;
+    if (!bigLetterPath) {
+      bigLetterWrapper = bigLetterSVG; // font parse failed — fallback handled elsewhere
+    } else {
+      const lop = settings.letterOpacity ?? 1;
+      const lopAttr = lop < 1 ? ` opacity="${lop}"` : "";
+      const letterFill = kMode === "solid" ? kTop : "url(#kGrad)";
+      const effectsGroup = `<g transform="${bigLetterTransform}">\n    ${bigLetterSVG}\n  </g>`;
+      let letterFragment;
+      if (shape !== "none" && blendMode !== "normal") {
+        // Isolated, glyph-clipped group: a background copy + the letter with
+        // mix-blend-mode. Isolation resets the backdrop so the letter blends
+        // ONLY against the background copy (never the effects below). Clipping
+        // to the glyph keeps just the letter-shaped, blended, opaque result.
+        const bgFill = bgMode === "solid" ? bgTop : "url(#bgGrad)";
+        letterFragment =
+          `<clipPath id="bigGlyphClip"><path d="${bigPathD}" transform="${bigLetterTransform}"/></clipPath>\n  ` +
+          `<g clip-path="url(#bigGlyphClip)"${lopAttr} style="isolation:isolate">\n` +
+          `    <rect x="0" y="0" width="${W}" height="${H}" fill="${bgFill}"/>\n` +
+          `    <path d="${bigPathD}" transform="${bigLetterTransform}" fill="${letterFill}" style="mix-blend-mode:${blendMode}"/>\n` +
+          `  </g>`;
+      } else {
+        // Normal blend (or no background): plain opaque letter on top.
+        letterFragment = `<path d="${bigPathD}" transform="${bigLetterTransform}" fill="${letterFill}"${lopAttr}/>`;
+      }
+      bigLetterWrapper = `${effectsGroup}\n  ${letterFragment}`;
+    }
+    const nameSVGFragment = nameSVG;
 
-  <!-- Rings (NOT clipped — drawn outside shape same as canvas) -->
-  ${showRing1 ? `<path d="${shapePath}" fill="none" stroke="${ring1}" stroke-width="${ring1Width || 5}"/>` : ""}
-  ${showRing2 ? `<path d="${buildShapeSVGPath(shape, cx, cy, ring2R)}" fill="none" stroke="${ring2}" stroke-width="${ring2Width || 2}"/>` : ""}
-  ` : ""}
+    const layerFragments = {
+      background: bgSVG,
+      rings:      ringsSVG,
+      bigLetter:  bigLetterWrapper,
+      name:       nameSVGFragment,
+    };
 
-  <!-- Big Letter (vector paths — font-independent) -->
-  ${bigLetterSVG}
-
-  <!-- Name Text (vector paths — font-independent) -->
-  ${nameSVG}
+    const layers = settings.layers || [
+      { id: "background", visible: true },
+      { id: "rings",      visible: true },
+      { id: "bigLetter",  visible: true },
+      { id: "name",       visible: true },
+    ];
+    return layers
+      .filter(l => l.visible !== false)
+      .map(l => layerFragments[l.id] || "")
+      .filter(s => s)
+      .join("\n\n  ");
+  })()}
 </svg>`;
 
       const blob = new Blob([svgContent], { type: "image/svg+xml" });
@@ -968,13 +1608,172 @@
     };
 
     // ── UI Components ──
-    function ColorRow({ label, value, onChange }) {
+    function ColorWheel({ value, onChange }) {
+      const canvasRef = React.useRef(null);
+      const hsv = hexToHsv(value);
+      const size = 170;
+      const ringOuter = 80;
+      const ringInner = 62;
+      const squareSize = 76;
+      const squareOffset = (size - squareSize) / 2;
+
+      React.useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, size, size);
+        const cx = size / 2, cy = size / 2;
+
+        // Draw hue ring
+        for (let angle = 0; angle < 360; angle += 1) {
+          const startRad = ((angle - 0.5) * Math.PI) / 180;
+          const endRad = ((angle + 0.5) * Math.PI) / 180;
+          ctx.beginPath();
+          ctx.arc(cx, cy, (ringOuter + ringInner) / 2, startRad, endRad);
+          ctx.lineWidth = ringOuter - ringInner;
+          ctx.strokeStyle = `hsl(${angle}, 100%, 50%)`;
+          ctx.stroke();
+        }
+
+        // Draw saturation/value square
+        for (let x = 0; x < squareSize; x++) {
+          for (let y = 0; y < squareSize; y++) {
+            const s = (x / squareSize) * 100;
+            const v = (1 - y / squareSize) * 100;
+            ctx.fillStyle = hsvToHex(hsv.h, s, v);
+            ctx.fillRect(squareOffset + x, squareOffset + y, 1.5, 1.5);
+          }
+        }
+      }, [hsv.h]);
+
+      const getPosFromEvent = (e) => {
+        const rect = canvasRef.current.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (size / rect.width);
+        const y = (e.clientY - rect.top) * (size / rect.height);
+        return { x, y };
+      };
+
+      const isOnRing = (x, y) => {
+        const cx = size / 2, cy = size / 2;
+        const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+        return dist >= ringInner && dist <= ringOuter;
+      };
+
+      const isOnSquare = (x, y) => {
+        return x >= squareOffset && x <= squareOffset + squareSize && y >= squareOffset && y <= squareOffset + squareSize;
+      };
+
+      const handleInteraction = (e) => {
+        const { x, y } = getPosFromEvent(e);
+        const cx = size / 2, cy = size / 2;
+        if (isOnRing(x, y)) {
+          const angle = ((Math.atan2(y - cy, x - cx) * 180) / Math.PI + 360) % 360;
+          onChange(hsvToHex(angle, hsv.s, hsv.v));
+        } else if (isOnSquare(x, y)) {
+          const s = Math.max(0, Math.min(100, ((x - squareOffset) / squareSize) * 100));
+          const v = Math.max(0, Math.min(100, (1 - (y - squareOffset) / squareSize) * 100));
+          onChange(hsvToHex(hsv.h, s, v));
+        }
+      };
+
+      const dragging = React.useRef(false);
+
+      const onPointerDown = (e) => {
+        e.preventDefault();
+        dragging.current = true;
+        handleInteraction(e);
+        const onMove = (ev) => { if (dragging.current) handleInteraction(ev); };
+        const onUp = () => { dragging.current = false; window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", onUp); };
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onUp);
+      };
+
+      // Hue thumb position
+      const hueRad = (hsv.h * Math.PI) / 180;
+      const hueR = (ringOuter + ringInner) / 2;
+      const hueX = size / 2 + Math.cos(hueRad) * hueR;
+      const hueY = size / 2 + Math.sin(hueRad) * hueR;
+
+      // SV thumb position
+      const svX = squareOffset + (hsv.s / 100) * squareSize;
+      const svY = squareOffset + (1 - hsv.v / 100) * squareSize;
+
       return (
-        <div className="control-row">
+        <canvas
+          ref={canvasRef}
+          width={size}
+          height={size}
+          style={{ width: size, height: size, cursor: "crosshair", borderRadius: 8, flexShrink: 0 }}
+          onPointerDown={onPointerDown}
+        />
+      );
+    }
+
+    function ColorPickerRow({ label, value, onChange }) {
+      const [open, setOpen] = useState(false);
+      const ref = useRef(null);
+      const [hexInput, setHexInput] = useState(value);
+      const [rInput, setRInput] = useState("");
+      const [gInput, setGInput] = useState("");
+      const [bInput, setBInput] = useState("");
+      const [r, g, b] = hexToRgb(value);
+
+      useEffect(() => { if (open) { setHexInput(value.slice(1)); setRInput(""); setGInput(""); setBInput(""); } }, [open, value]);
+
+      useEffect(() => {
+        if (!open) return;
+        const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+        const esc = (e) => { if (e.key === "Escape") setOpen(false); };
+        window.addEventListener("mousedown", close);
+        window.addEventListener("keydown", esc);
+        return () => { window.removeEventListener("mousedown", close); window.removeEventListener("keydown", esc); };
+      }, [open]);
+
+      const commitRgb = (rv, gv, bv) => {
+        const clamp = v => Math.min(255, Math.max(0, Math.round(Number(v) || 0)));
+        onChange(rgbToHex(clamp(rv), clamp(gv), clamp(bv)));
+      };
+
+      return (
+        <div className="control-row color-picker-row" ref={ref}>
           <label>{label}</label>
-          <div className="color-input-wrap">
-            <input type="color" value={value} onChange={e=>onChange(e.target.value)} aria-label={label} />
-            <span className="hex-label" aria-hidden="true">{value}</span>
+          <div className="color-picker-wrap">
+            <button type="button" className="color-swatch" style={{ background: value }}
+              onClick={() => setOpen(o => !o)} aria-label={`${label}: ${value}`} aria-expanded={open} />
+            <span className="hex-label">{value.toUpperCase()}</span>
+            {open && (
+              <>
+                <div className="color-picker-backdrop" onClick={() => setOpen(false)} />
+                <div className="color-picker-popover" role="dialog" aria-label={`Pick ${label}`} onPointerDown={e => e.stopPropagation()}>
+                  <button type="button" className="color-picker-close" onClick={() => setOpen(false)} aria-label="Close color picker">&times;</button>
+                <div className="color-picker-body">
+                  <ColorWheel value={value} onChange={onChange} />
+                  <div className="color-picker-inputs">
+                    <label className="color-input-label"><span>HEX</span>
+                      <input type="text" value={hexInput}
+                        onChange={e => { const v = e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 6); setHexInput(v); if (v.length === 6) onChange("#" + v); }}
+                        onBlur={() => setHexInput(value.slice(1))} maxLength={6} />
+                    </label>
+                    <label className="color-input-label"><span>R</span>
+                      <input type="text" value={rInput || String(r)}
+                        onChange={e => setRInput(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
+                        onBlur={() => { if (rInput !== "") commitRgb(rInput, g, b); setRInput(""); }} />
+                    </label>
+                    <label className="color-input-label"><span>G</span>
+                      <input type="text" value={gInput || String(g)}
+                        onChange={e => setGInput(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
+                        onBlur={() => { if (gInput !== "") commitRgb(r, gInput, b); setGInput(""); }} />
+                    </label>
+                    <label className="color-input-label"><span>B</span>
+                      <input type="text" value={bInput || String(b)}
+                        onChange={e => setBInput(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
+                        onBlur={() => { if (bInput !== "") commitRgb(r, g, bInput); setBInput(""); }} />
+                    </label>
+                  </div>
+                </div>
+              </div>
+              </>
+            )}
           </div>
         </div>
       );
@@ -995,12 +1794,74 @@
       );
     }
 
+    // Settings migration — runs on every external load to fill in newly added keys.
+    function migrateSettings(s) {
+      if (!s) return s;
+      if (s.bgMode === undefined)   s.bgMode = "gradient";
+      if (s.kMode === undefined)    s.kMode = "gradient";
+      if (s.nameMode === undefined) s.nameMode = "gradient";
+      if (!s.effects) s.effects = {};
+      if (!s.effects.glow) {
+        s.effects.glow = {
+          enabled:   s.glow ?? true,
+          color:     s.glowColor ?? "#ffdc50",
+          intensity: s.glowIntensity ?? 1.0
+        };
+      }
+      if (!s.effects.shadow) {
+        s.effects.shadow = { enabled: false, dx: 4, dy: 4, blur: 8, color: "#000000", opacity: 0.5 };
+      }
+      if (!s.effects.nameGlow) {
+        s.effects.nameGlow = { enabled: false, color: "#ffc828", intensity: 1.0 };
+      }
+      if (!s.effects.nameShadow) {
+        s.effects.nameShadow = { enabled: false, dx: 3, dy: 3, blur: 6, color: "#000000", opacity: 0.5 };
+      }
+      // M3: letter transform defaults (F19)
+      if (s.letterScaleX === undefined) s.letterScaleX = 1.0;
+      if (s.letterScaleY === undefined) s.letterScaleY = 1.0;
+      if (s.letterSkewX  === undefined) s.letterSkewX  = 0;
+      if (s.letterSkewY  === undefined) s.letterSkewY  = 0;
+      if (s.letterRotate === undefined) s.letterRotate = 0;
+      // M4: emboss defaults (F18)
+      if (!s.effects.emboss) {
+        s.effects.emboss = { enabled: false, depth: 3, angle: 135, highlight: "#ffffff", shadow: "#000000", opacity: 0.6 };
+      }
+      // M5: blend mode default (F16)
+      if (s.letterBlendMode === undefined) s.letterBlendMode = "normal";
+      if (s.letterOpacity    === undefined) s.letterOpacity    = 1.0;
+      // M6: layer stack default (F17)
+      if (!s.layers) {
+        s.layers = [
+          { id: "background", label: "Background", visible: true },
+          { id: "rings",      label: "Rings",      visible: true },
+          { id: "bigLetter",  label: "Big Letter",  visible: true },
+          { id: "name",       label: "Name",        visible: true },
+        ];
+      }
+      // Validate layerOrder: drop unknown ids, append missing
+      const CANONICAL_LAYERS = [
+        { id: "background", label: "Background" },
+        { id: "rings",      label: "Rings" },
+        { id: "bigLetter",  label: "Big Letter" },
+        { id: "name",       label: "Name" },
+      ];
+      const layerMap = new Map(s.layers.map(l => [l.id, l]));
+      s.layers = CANONICAL_LAYERS.map(c => {
+        const existing = layerMap.get(c.id);
+        return existing ? { ...c, visible: existing.visible !== false } : { ...c, visible: true };
+      });
+      return s;
+    }
+
     function App() {
       const canvasRef = useRef(null);
       const [tab, setTab] = useState("design");
       const [fontLoaded, setFontLoaded] = useState(false);
+      const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
       const [shareToast, setShareToast] = useState(false);
       const [shareWarning, setShareWarning] = useState(null);
+      const [overlayHidden, setOverlayHidden] = useState(false);
       const [importError, setImportError] = useState(null);
       const [importSuccess, setImportSuccess] = useState(false);
       const [pngRes, setPngRes] = useState(700);
@@ -1011,20 +1872,75 @@
         const hash = window.location.hash.slice(1);
         if (hash.startsWith("config=")) {
           const decoded = decodeSettings(hash.slice(7));
-          if (decoded && decoded.bgTop) return { ...DEFAULT_SETTINGS, ...decoded };
+          if (decoded && decoded.bgTop) return migrateSettings({ ...DEFAULT_SETTINGS, ...decoded });
         }
         // Then localStorage
         try {
           const saved = localStorage.getItem("monogram-studio-settings");
           if (saved) {
             const parsed = JSON.parse(saved);
-            if (parsed.bgTop) return { ...DEFAULT_SETTINGS, ...parsed };
+            if (parsed.bgTop) return migrateSettings({ ...DEFAULT_SETTINGS, ...parsed });
           }
         } catch {}
-        return DEFAULT_SETTINGS;
+        return migrateSettings({ ...DEFAULT_SETTINGS });
       };
 
       const [settings, setSettings] = useState(getInitialSettings);
+
+      // ── Preset slot system ──
+      const [presetSlots, setPresetSlots] = useState(getOrInitSlots);
+      const hasCustomized = presetSlots.some(s => s.modifiedAt !== null || (!s.isShipped && s.name !== null));
+
+      const handleSaveToSlot = useCallback((slotIndex, name) => {
+        setPresetSlots(prev => {
+          const next = [...prev];
+          next[slotIndex] = { ...next[slotIndex], name, settings: { ...settings }, modifiedAt: Date.now() };
+          persistSlots(next);
+          return next;
+        });
+      }, [settings]);
+
+      const handleClearSlot = useCallback((slotIndex) => {
+        setPresetSlots(prev => {
+          const next = [...prev];
+          next[slotIndex] = { ...next[slotIndex], name: null, settings: null, modifiedAt: Date.now() };
+          persistSlots(next);
+          return next;
+        });
+      }, []);
+
+      const handleResetSlotToShipped = useCallback((slotIndex) => {
+        setPresetSlots(prev => {
+          const slot = prev[slotIndex];
+          if (!slot?.isShipped) return prev;
+          const shipped = SHIPPED_PRESETS.find(p => p.name === slot.originalName);
+          if (!shipped) return prev;
+          const next = [...prev];
+          next[slotIndex] = { ...next[slotIndex], name: shipped.name, settings: { ...shipped }, modifiedAt: null };
+          persistSlots(next);
+          return next;
+        });
+      }, []);
+
+      const [saveSlotMode, setSaveSlotMode] = useState(false);
+      const [warnDismissed, setWarnDismissed] = useState(false);
+      const [randomizerTick, setRandomizerTick] = useState(0);
+      const [selectedSlotIndex, setSelectedSlotIndex] = useState(null);
+      const [saveSlotName, setSaveSlotName] = useState("");
+      const [saveSlotError, setSaveSlotError] = useState(null);
+
+      const commitSaveToSlot = useCallback(() => {
+        if (selectedSlotIndex === null) return;
+        const trimmed = saveSlotName.trim();
+        if (!trimmed) { setSaveSlotError("Name cannot be empty."); return; }
+        const duplicate = presetSlots.some((s, i) => i !== selectedSlotIndex && s.name && s.name.toLowerCase() === trimmed.toLowerCase());
+        if (duplicate) { setSaveSlotError("A preset with this name already exists."); return; }
+        handleSaveToSlot(selectedSlotIndex, trimmed);
+        setSaveSlotMode(false);
+        setSelectedSlotIndex(null);
+        setSaveSlotName("");
+        setSaveSlotError(null);
+      }, [selectedSlotIndex, saveSlotName, presetSlots, handleSaveToSlot]);
 
       // ── Undo/redo history ──
       const historyRef = useRef([settings]);
@@ -1034,6 +1950,26 @@
         setSettings(s => {
           const next = { ...s, [key]: val };
           // Trim forward history on new change
+          historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
+          historyRef.current.push(next);
+          if (historyRef.current.length > 100) historyRef.current.shift();
+          historyIndexRef.current = historyRef.current.length - 1;
+          return next;
+        });
+      }, []);
+
+      const setEffect = useCallback((effectName, field, value) => {
+        setSettings(s => {
+          const nextEffects = {
+            ...s.effects,
+            [effectName]: { ...(s.effects?.[effectName] || {}), [field]: value }
+          };
+          const next = { ...s, effects: nextEffects };
+          if (effectName === "glow") {
+            if (field === "enabled")   next.glow         = value;
+            if (field === "color")     next.glowColor    = value;
+            if (field === "intensity") next.glowIntensity = value;
+          }
           historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
           historyRef.current.push(next);
           if (historyRef.current.length > 100) historyRef.current.shift();
@@ -1077,17 +2013,29 @@
         return () => window.removeEventListener("keydown", handler);
       }, [undo, redo]);
 
-      // ── Auto-save to localStorage ──
-      useEffect(() => {
-        try { localStorage.setItem("monogram-studio-settings", JSON.stringify(settings)); } catch {}
-      }, [settings]);
+      // ── Auto-save to localStorage (throttled via debouncedSettings below) ──
 
       // ── Font loading ──
       useEffect(() => {
-        const fontsToLoad = FONTS.map(f => document.fonts.load(`${f.weight} 10px '${f.family}'`));
-        document.fonts.ready.then(() => {
-          Promise.all(fontsToLoad).then(() => setFontLoaded(true)).catch(() => setFontLoaded(true));
+        const loads = [];
+        FONTS.forEach(f => {
+          const url = FONT_FILES[f.family];
+          if (!url) return;
+          // declared weight (used by name text + preview buttons)
+          loads.push(new FontFace(f.family, `url('${url}')`, { weight: String(f.weight) }).load()
+            .then(ff => document.fonts.add(ff)).catch(() => {}));
+          // weight 900 variant (canvas big letter renders at 900)
+          loads.push(new FontFace(f.family, `url('${url}')`, { weight: "900" }).load()
+            .then(ff => document.fonts.add(ff)).catch(() => {}));
         });
+        Promise.allSettled(loads).then(() => setFontLoaded(true));
+      }, []);
+
+      // ── Mobile detection ──
+      useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener("resize", check);
+        return () => window.removeEventListener("resize", check);
       }, []);
 
       const debouncedSettings = useDebounce(settings, 0);
@@ -1097,9 +2045,18 @@
         drawMonogram(canvasRef.current, debouncedSettings);
       }, [debouncedSettings, fontLoaded]);
 
+      useEffect(() => {
+        try { localStorage.setItem("monogram-studio-settings", JSON.stringify(debouncedSettings)); } catch {}
+      }, [debouncedSettings]);
+
       const applyPreset = useCallback((preset) => {
         setSettings(s => {
-          const next = { ...s, ...preset };
+          // Deep copy and migrate the preset so it builds the missing effects object
+          const readyPreset = migrateSettings(JSON.parse(JSON.stringify(preset)));
+          
+          // Now the merge will completely overwrite s.effects
+          const next = { ...s, ...readyPreset };
+          
           historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
           historyRef.current.push(next);
           historyIndexRef.current = historyRef.current.length - 1;
@@ -1123,7 +2080,7 @@
         catch (err) { console.error("SVG export failed:", err); }
       };
 
-      const shareURL = () => {
+      const shareURL = async () => {
         const encoded = encodeSettings(settings);
         if (!encoded) return;
         const url = `${window.location.href.split("#")[0]}#config=${encoded}`;
@@ -1132,7 +2089,20 @@
           setTimeout(() => setShareWarning(null), 6000);
           return;
         }
-        if (navigator.clipboard) {
+        if (navigator.share) {
+          try {
+            await navigator.share({ title: "Monogram Studio", url });
+            setShareToast(true);
+            setTimeout(() => setShareToast(false), 2500);
+          } catch (e) {
+            if (e.name !== "AbortError") {
+              navigator.clipboard?.writeText(url).then(() => {
+                setShareToast(true);
+                setTimeout(() => setShareToast(false), 2500);
+              });
+            }
+          }
+        } else if (navigator.clipboard) {
           navigator.clipboard.writeText(url).then(() => {
             setShareToast(true);
             setTimeout(() => setShareToast(false), 2500);
@@ -1162,6 +2132,7 @@
           try {
             const parsed = JSON.parse(ev.target.result);
             if (parsed.bgTop === undefined) { setImportError("Invalid design file — doesn't look like a Monogram Studio export."); return; }
+            migrateSettings(parsed);
             setSettings(s => { const next = { ...s, ...parsed }; historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1); historyRef.current.push(next); historyIndexRef.current = historyRef.current.length - 1; return next; });
             setImportSuccess(true);
             setTimeout(() => setImportSuccess(false), 3000);
@@ -1171,7 +2142,54 @@
         e.target.value = "";
       };
 
+      const [importPresetsError, setImportPresetsError] = useState(null);
+      const [importPresetsSuccess, setImportPresetsSuccess] = useState(false);
+
+      const exportPresets = () => {
+        const bundle = {
+          app: "monogram-studio",
+          type: "preset-bundle",
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          slotCount: TOTAL_PRESET_SLOTS,
+          slots: presetSlots
+        };
+        const json = JSON.stringify(bundle, null, 2);
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.download = "monogram-presets.json";
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+      };
+
+      const importPresets = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setImportPresetsError(null); setImportPresetsSuccess(false);
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const parsed = JSON.parse(ev.target.result);
+            if (parsed.type !== "preset-bundle" || parsed.version !== 1 || !Array.isArray(parsed.slots) || parsed.slots.length !== TOTAL_PRESET_SLOTS) {
+              setImportPresetsError("Invalid preset bundle — doesn't look like a Monogram Studio preset export.");
+              return;
+            }
+            persistSlots(parsed.slots);
+            setPresetSlots(parsed.slots);
+            setImportPresetsSuccess(true);
+            setTimeout(() => setImportPresetsSuccess(false), 3000);
+          } catch { setImportPresetsError("Could not parse file. Make sure it's a valid JSON preset bundle."); }
+        };
+        reader.readAsText(file);
+        e.target.value = "";
+      };
+
       const handleRandomize = () => {
+        const uiState = loadUIState();
+        const locks = uiState.randomizerLocks || {};
+
         // 1. Core color harmony generator (HSL style)
         const baseHue = Math.floor(Math.random() * 360);
         const themeRoll = Math.random();
@@ -1216,7 +2234,7 @@
         const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         const randomChar = () => alphabet[Math.floor(Math.random() * alphabet.length)];
 
-        // 3. Formulate the exact schema matching DEFAULT_SETTINGS & PRESETS
+        // 3. Formulate the exact schema matching DEFAULT_SETTINGS & SHIPPED_PRESETS
         const randomizedMatrix = {
           fontFamily: fontChoices[Math.floor(Math.random() * fontChoices.length)],
           shape: shapeChoices[Math.floor(Math.random() * shapeChoices.length)],
@@ -1261,11 +2279,88 @@
           glow: Math.random() > 0.4,
           glowColor: genAccentColor(70),
           glowIntensity: parseFloat((Math.random() * 0.9 + 0.6).toFixed(2)), // 0.6 to 1.5 scale
+
+          // Effects sub-object (renderer reads from here)
+          effects: {
+            glow: {
+              enabled: Math.random() > 0.4,
+              color: genAccentColor(70),
+              intensity: parseFloat((Math.random() * 0.9 + 0.6).toFixed(2))
+            },
+            shadow: {
+              enabled: Math.random() > 0.6,
+              dx: Math.floor(Math.random() * 10) - 5,
+              dy: Math.floor(Math.random() * 10) - 5,
+              blur: Math.floor(Math.random() * 15) + 3,
+              color: "#000000",
+              opacity: parseFloat((Math.random() * 0.5 + 0.2).toFixed(2))
+            },
+            nameGlow: {
+              enabled: Math.random() > 0.7,
+              color: genAccentColor(70),
+              intensity: parseFloat((Math.random() * 0.8 + 0.5).toFixed(2))
+            },
+            nameShadow: {
+              enabled: Math.random() > 0.7,
+              dx: Math.floor(Math.random() * 8) - 4,
+              dy: Math.floor(Math.random() * 8) - 4,
+              blur: Math.floor(Math.random() * 10) + 2,
+              color: "#000000",
+              opacity: parseFloat((Math.random() * 0.5 + 0.2).toFixed(2))
+            },
+            emboss: {
+              enabled: Math.random() > 0.75,
+              depth: Math.floor(Math.random() * 8) + 2,
+              angle: Math.floor(Math.random() * 360),
+              highlight: "#ffffff",
+              shadow: "#000000",
+              opacity: parseFloat((Math.random() * 0.5 + 0.3).toFixed(2))
+            }
+          },
+
+          // Letter transformations (F19) — mild values to stay tasteful
+          letterScaleX: parseFloat((Math.random() * 0.3 + 0.85).toFixed(2)),
+          letterScaleY: parseFloat((Math.random() * 0.3 + 0.85).toFixed(2)),
+          letterSkewX:  Math.floor(Math.random() * 24) - 12,
+          letterSkewY:  Math.floor(Math.random() * 24) - 12,
+          letterRotate: Math.floor(Math.random() * 16) - 8,
+
+          // Blend mode (F16) — curated safe subset + near-full opacity
+          letterBlendMode: ["normal","multiply","screen","overlay","soft-light"][Math.floor(Math.random() * 5)],
+          letterOpacity: parseFloat((Math.random() * 0.15 + 0.85).toFixed(2)),
+
+          // NOTE: `layers` is deliberately excluded from randomization.
+          // Randomizing layer visibility would produce confusing empty canvases.
+          // The layers key participates in undo/redo via the whole-settings history snapshot.
         };
+
+        // 3b. Strip out keys belonging to locked categories so they survive randomize.
+        const finalMatrix = { ...randomizedMatrix };
+        for (const [cat, keys] of Object.entries(RANDOMIZER_CATEGORIES)) {
+          if (!locks[cat]) continue;
+          for (const k of keys) {
+            if (k === "__effects__") {
+              // Effects locked: drop the rolled effects object and its legacy glow mirrors.
+              delete finalMatrix.effects;
+              delete finalMatrix.glow;
+              delete finalMatrix.glowColor;
+              delete finalMatrix.glowIntensity;
+              continue;
+            }
+            delete finalMatrix[k];
+          }
+        }
+        // Keep legacy top-level glow keys mirrored to the rolled effects.glow (back-compat),
+        // but only when effects were actually rerolled (not locked).
+        if (finalMatrix.effects && finalMatrix.effects.glow) {
+          finalMatrix.glow = finalMatrix.effects.glow.enabled;
+          finalMatrix.glowColor = finalMatrix.effects.glow.color;
+          finalMatrix.glowIntensity = finalMatrix.effects.glow.intensity;
+        }
 
         // 4. Update state while committing accurately to your history engine stack
         setSettings(current => {
-          const nextSettings = { ...current, ...randomizedMatrix };
+          const nextSettings = { ...current, ...finalMatrix };
           
           // Wipe forward history steps and commit new snapshot
           historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
@@ -1300,6 +2395,8 @@
             .icon-btn:hover:not(:disabled) { background: rgba(255,255,255,0.1); color: #fff; }
             .icon-btn:disabled { opacity: 0.25; cursor: not-allowed; }
             .icon-btn:focus-visible { outline: 2px solid #ffc828; outline-offset: 2px; }
+            .icon-btn-action { color: rgba(255,200,40,0.7); border-color: rgba(255,200,40,0.25); }
+            .icon-btn-action:hover:not(:disabled) { background: rgba(255,200,40,0.15); color: #ffc828; border-color: rgba(255,200,40,0.45); }
             .icon-btn[data-shortcut] { position: relative; }
             .icon-btn[data-shortcut]::after { content: attr(data-shortcut); position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #1a1528; color: rgba(255,255,255,0.7); font-size: 9px; font-weight: 600; letter-spacing: 0.04em; padding: 3px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 10; }
             .icon-btn[data-shortcut]:hover::after { opacity: 1; }
@@ -1316,21 +2413,138 @@
             .canvas-row { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 40px; width: 100%; max-width: 670px; }
             .canvas-wrap { position: relative; width: 100%; max-width: 670px; aspect-ratio: 1; border-radius: 20px; overflow: hidden; background: repeating-conic-gradient(rgba(255,255,255,0.04) 0% 25%, transparent 0% 50%) 0 0 / 20px 20px; box-shadow: 0 0 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06); }
             canvas { width: 100%; height: 100%; display: block; touch-action: none; }
-            /* Sidebar stacks presets list, then a gap, then the action buttons */
+            /* Floating action panel overlay */
+            .canvas-action-overlay {
+              position: absolute;
+              top: 12px;
+              right: 12px;
+              z-index: 2;
+              display: flex;
+              flex-direction: column;
+              gap: 6px;
+              padding: 6px;
+              border-radius: 10px;
+              background: transparent;
+              border: 1px solid transparent;
+              transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+            }
+            .canvas-action-overlay:hover {
+              background: rgba(20,15,36,0.85);
+              border-color: rgba(255,255,255,0.08);
+            }
+            .overlay-btn {
+              background: rgba(20,15,36,0.4);
+              color: rgba(255,255,255,0.75);
+              border: 1px solid rgba(255,255,255,0.08);
+              border-radius: 8px;
+              padding: 6px 12px;
+              font-family: 'Poppins', sans-serif;
+              font-size: 11px;
+              font-weight: 600;
+              letter-spacing: 0.06em;
+              cursor: pointer;
+              transition: all 0.15s;
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              -webkit-tap-highlight-color: transparent;
+            }
+            .canvas-action-overlay:hover .overlay-btn {
+              background: rgba(255,255,255,0.08);
+              color: #fff;
+            }
+            .overlay-btn:hover {
+              background: rgba(255,200,40,0.18) !important;
+              border-color: rgba(255,200,40,0.4);
+              color: #ffc828 !important;
+            }
+            .overlay-btn-row {
+              display: flex;
+              gap: 4px;
+              align-items: stretch;
+            }
+            .overlay-btn-row .overlay-btn {
+              flex: 1;
+              border-top-right-radius: 0;
+              border-bottom-right-radius: 0;
+            }
+            .overlay-btn-png {
+              flex-direction: column;
+              gap: 1px;
+              line-height: 1.2;
+            }
+            .overlay-btn-label {
+              display: inline-flex;
+              align-items: center;
+              gap: 4px;
+            }
+            .overlay-res-select {
+              background: rgba(20,15,36,0.4);
+              color: rgba(255,255,255,0.55);
+              border: 1px solid rgba(255,255,255,0.08);
+              border-left: none;
+              border-radius: 0 8px 8px 0;
+              padding: 0 6px;
+              font-family: 'Poppins', sans-serif;
+              font-size: 9px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.15s;
+              -webkit-appearance: none;
+              appearance: none;
+              letter-spacing: 0.04em;
+            }
+            .overlay-res-select:hover {
+              background: rgba(255,200,40,0.12);
+              color: #ffc828;
+            }
+            .overlay-res-select:focus-visible {
+              outline: 2px solid #ffc828;
+              outline-offset: 2px;
+            }
+            .overlay-res-label {
+              font-size: 7px;
+              opacity: 0.45;
+              letter-spacing: 0.04em;
+              color: rgba(255,255,255,0.5);
+              line-height: 1;
+            }
+            /* Sidebar presets list */
             .canvas-sidebar { display: flex; flex-direction: column; width: 180px; flex-shrink: 0; gap: 22px; }
-            .presets-label { display: none; }
 
             /* ── Preset thumbnails ── */
             .presets { display: flex; flex-direction: column; gap: 8px; width: 100%; }
-            .preset-btn { display: flex; align-items: center; gap: 9px; padding: 5px 8px 5px 5px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.6); font-family: 'Poppins', sans-serif; font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.15s; letter-spacing: 0.04em; -webkit-tap-highlight-color: transparent; touch-action: manipulation; text-align: left; }
+            .preset-btn { display: flex; align-items: center; gap: 7px; padding: 4px 7px 4px 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.6); font-family: 'Poppins', sans-serif; font-size: 10px; font-weight: 500; cursor: pointer; transition: all 0.15s; letter-spacing: 0.04em; -webkit-tap-highlight-color: transparent; touch-action: manipulation; text-align: left; }
             .preset-btn:hover { background: rgba(255,200,40,0.12); border-color: rgba(255,200,40,0.35); color: #ffc828; }
             .preset-btn.active { background: rgba(255,200,40,0.18); border-color: rgba(255,200,40,0.55); color: #ffc828; }
             .preset-btn:focus-visible { outline: 2px solid #ffc828; outline-offset: 2px; }
-            .preset-thumb { width: 30px; height: 30px; border-radius: 6px; display: block; flex-shrink: 0; }
+            .preset-thumb { width: 22px; height: 22px; border-radius: 4px; display: block; flex-shrink: 0; }
             .preset-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-            /* ── Canvas actions (inside .canvas-sidebar on desktop) ── */
-            .canvas-actions { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+            /* Preset slot system */
+            .preset-slot-row { display: flex; align-items: center; gap: 4px; }
+            .preset-slot-row .preset-btn { flex: 1; min-width: 0; }
+            .preset-slot-empty { display: flex; align-items: center; justify-content: center; padding: 6px 8px; border: 1px dashed rgba(255,255,255,0.08); border-radius: 8px; opacity: 0.4; font-size: 10px; color: rgba(255,255,255,0.35); font-family: 'Poppins', sans-serif; }
+            .slot-action-btn { background: none; border: none; padding: 4px 6px; border-radius: 4px; cursor: pointer; font-size: 13px; flex-shrink: 0; transition: all 0.15s; line-height: 1; }
+            .slot-reset-btn { color: rgba(255,200,40,0.45); }
+            .slot-reset-btn:hover { color: #ffc828; background: rgba(255,200,40,0.1); }
+            .slot-delete-btn { color: rgba(255,255,255,0.25); }
+            .slot-delete-btn:hover { color: #ff7070; background: rgba(255,80,80,0.1); }
+            .preset-storage-warn { display: flex; align-items: flex-start; gap: 8px; background: rgba(255,200,40,0.06); border: 1px solid rgba(255,200,40,0.15); border-radius: 7px; padding: 8px 10px; font-size: 11px; line-height: 1.55; color: rgba(255,200,40,0.8); margin-bottom: 8px; }
+            .preset-storage-warn .warn-dismiss { margin-left: auto; background: none; border: none; color: rgba(255,200,40,0.5); cursor: pointer; padding: 0 2px; font-size: 14px; line-height: 1; flex-shrink: 0; }
+            .preset-storage-warn .warn-dismiss:hover { color: rgba(255,200,40,1); }
+            .preset-storage-warn-lg { padding: 12px 14px; }
+            .slot-picker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 10px; }
+            .slot-picker-item { display: flex; align-items: center; gap: 6px; padding: 7px 9px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); cursor: pointer; transition: all 0.15s; text-align: left; font-family: 'Poppins', sans-serif; font-size: 10px; color: rgba(255,255,255,0.6); }
+            .slot-picker-item:hover { background: rgba(255,255,255,0.06); }
+            .slot-picker-item.selected { border-color: rgba(255,200,40,0.5); background: rgba(255,200,40,0.08); }
+            .slot-picker-item.is-default .slot-picker-name { color: rgba(255,200,40,0.6); }
+            .slot-picker-num { font-weight: 600; color: rgba(255,255,255,0.35); min-width: 14px; }
+            .slot-picker-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .slot-picker-badge { font-size: 8px; opacity: 0.5; white-space: nowrap; }
+            .save-slot-row { display: flex; flex-direction: column; gap: 8px; }
+            .save-slot-row .text-input { width: 100%; box-sizing: border-box; }
+            .save-slot-row .text-input::placeholder { color: rgba(255,255,255,0.25); }
+            .save-slot-btns { display: flex; gap: 6px; }
 
             /* ── Buttons ── */
             .btn { padding: 10px 16px; border-radius: 8px; border: none; font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; cursor: pointer; transition: all 0.15s; -webkit-tap-highlight-color: transparent; touch-action: manipulation; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -1351,8 +2565,9 @@
             /* ── Panel ── */
             .panel { grid-column: 2; grid-row: 1 / 3; background: #120f1e; border-left: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; overflow: hidden; height: 100%; }
             .tabs { display: flex; height: 58px; border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; }
-            .tab { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; color: rgba(255,255,255,0.3); transition: all 0.15s; border: none; border-bottom: 2px solid transparent; background: none; font-family: 'Poppins', sans-serif; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+            .tab { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; padding: 0 6px; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; cursor: pointer; color: rgba(255,255,255,0.3); transition: all 0.15s; border: none; border-bottom: 2px solid transparent; background: none; font-family: 'Poppins', sans-serif; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
             .tab.active { color: #ffc828; border-bottom-color: #ffc828; }
+            .tab-multiline { line-height: 1.1; text-align: center; font-size: 9px; }
             .tab:hover:not(.active) { color: rgba(255,255,255,0.6); }
             .tab:focus-visible { outline: 2px solid #ffc828; outline-offset: -2px; }
             .panel-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px; display: flex; flex-direction: column; gap: 20px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; }
@@ -1361,15 +2576,58 @@
             .section { display: flex; flex-direction: column; gap: 10px; }
             .section-disabled { opacity: 0.35; pointer-events: none; }
             .section-title { font-size: 10px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.25); padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+            /* Collapsible sections */
+            .section-collapsible { display: flex; flex-direction: column; }
+            .section-header {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              background: none;
+              border: none;
+              padding: 0 0 6px 0;
+              margin: 0;
+              cursor: pointer;
+              width: 100%;
+              border-bottom: 1px solid rgba(255,255,255,0.06);
+              font-family: inherit;
+              -webkit-tap-highlight-color: transparent;
+            }
+            .section-header:hover .section-title { color: rgba(255,255,255,0.45); }
+            .section-header:hover .section-chevron { color: #ffc828; }
+            .section-header:focus-visible { outline: 2px solid #ffc828; outline-offset: 2px; }
+            .section-chevron {
+              color: rgba(255,200,40,0.5);
+              font-size: 13px;
+              font-weight: 700;
+              margin-left: 8px;
+              transition: transform 0.15s, color 0.15s;
+              line-height: 1;
+            }
+            .section-collapsible.open .section-body { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; }
+            .section-collapsible.closed .section-body { display: none; }
+            .section-header .section-title { padding-bottom: 0; border-bottom: none; }
             .control-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; overflow: hidden; }
             .control-row label { font-size: 12px; color: rgba(255,255,255,0.55); white-space: nowrap; min-width: 100px; }
             .text-input { flex: 1; min-width: 0; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 8px 10px; color: #e8e0ff; font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; outline: none; transition: border-color 0.15s; text-transform: uppercase; min-height: 40px; }
             .text-input:focus { border-color: rgba(255,200,40,0.5); }
             .text-input:focus-visible { outline: 2px solid #ffc828; outline-offset: 1px; }
-            .color-input-wrap { display: flex; align-items: center; gap: 8px; }
-            input[type=color] { width: 40px; height: 34px; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; background: none; cursor: pointer; padding: 2px; }
-            input[type=color]:focus-visible { outline: 2px solid #ffc828; outline-offset: 2px; }
+            /* Color picker */
+            .color-picker-row { position: relative; }
+            .color-picker-wrap { display: flex; align-items: center; gap: 8px; position: relative; }
+            .color-swatch { width: 40px; height: 34px; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; cursor: pointer; padding: 0; transition: border-color 0.15s, transform 0.1s; }
+            .color-swatch:hover { border-color: rgba(255,200,40,0.5); transform: scale(1.04); }
+            .color-swatch:focus-visible { outline: 2px solid #ffc828; outline-offset: 2px; }
+            .color-picker-popover { position: fixed; top: 55%; right: 140px; left: auto; transform: translateY(-50%); background: #14112a; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.55); z-index: 100; display: flex; flex-direction: column; gap: 6px; }
+            .color-picker-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 99; }
+            .color-picker-popover .color-picker-body { display: flex; flex-direction: row; gap: 10px; align-items: center; padding-top: 2px; }
+            .color-picker-inputs { display: flex; flex-direction: column; gap: 4px; min-width: 80px; }
+            .color-input-label { display: flex; flex-direction: row; align-items: center; gap: 4px; font-size: 9px; color: rgba(255,255,255,0.4); letter-spacing: 0.1em; text-transform: uppercase; }
+            .color-input-label span { min-width: 26px; }
+            .color-input-label input { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 4px 6px; color: #e8e0ff; font-family: 'DM Mono', monospace; font-size: 11px; outline: none; width: 100%; box-sizing: border-box; }
+            .color-input-label input:focus { border-color: rgba(255,200,40,0.5); }
             .hex-label { font-family: 'DM Mono', monospace; font-size: 11px; color: rgba(255,255,255,0.35); min-width: 54px; }
+            .color-picker-close { position: absolute; top: 4px; right: 4px; background: none; border: none; color: rgba(255,255,255,0.35); font-size: 18px; cursor: pointer; padding: 0 4px; line-height: 1; border-radius: 4px; z-index: 1; }
+            .color-picker-close:hover { color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.06); }
             .slider-wrap { display: flex; align-items: center; gap: 10px; flex: 1; }
             input[type=range] { flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.12); outline: none; cursor: pointer; }
             input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #ffc828; cursor: pointer; box-shadow: 0 0 6px rgba(255,200,40,0.5); }
@@ -1389,8 +2647,8 @@
             .toggle:focus-visible { outline: 2px solid #ffc828; outline-offset: 3px; }
 
             /* ── Font picker ── */
-            .font-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-            .font-btn { padding: 10px 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.6); cursor: pointer; transition: all 0.15s; text-align: center; font-size: 13px; line-height: 1.2; -webkit-tap-highlight-color: transparent; }
+            .font-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+            .font-btn { padding: 8px 6px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.6); cursor: pointer; transition: all 0.15s; text-align: center; font-size: 13px; line-height: 1.2; -webkit-tap-highlight-color: transparent; }
             .font-btn .font-preview { font-size: 18px; display: block; margin-bottom: 3px; }
             .font-btn .font-label { font-family: 'DM Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.6; display: block; }
             .font-btn.active { background: rgba(255,200,40,0.15); border-color: rgba(255,200,40,0.5); color: #ffc828; }
@@ -1401,6 +2659,8 @@
             .export-wrap { display: flex; flex-direction: column; gap: 20px; }
             .export-section { display: flex; flex-direction: column; gap: 10px; }
             .export-desc { font-size: 12px; color: rgba(255,255,255,0.4); line-height: 1.6; }
+            .randomizer-locks { margin-top: 14px; display: flex; flex-direction: column; gap: 2px; }
+            .randomizer-locks .toggle-row { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
             .export-btn { display: flex; align-items: center; gap: 8px; justify-content: center; width: 100%; padding: 14px 20px; font-size: 13px; border-radius: 10px; min-height: 48px; }
             .btn-import { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.75); border: 1px solid rgba(255,255,255,0.15); font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; transition: all 0.15s; }
             .btn-import:hover { background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.28); color: #fff; }
@@ -1417,11 +2677,6 @@
             .share-warning .warn-btn:hover { background: rgba(255,100,80,0.35); color: #ffaa88; }
             @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
 
-            /* ── Desktop only default ── */
-            .mobile-presets-wrap{
-                display:none;
-            }
-
             /* ── Mobile ── */
             @media (max-width: 768px) {
               body { height: 100dvh; overflow: hidden; }
@@ -1434,58 +2689,67 @@
               .kofi-mobile { display: flex; }
               .canvas-area { padding: 14px 12px 12px; gap: 10px; background: #0c0a14; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
 
-              /* Mobile layout: centered preview, action buttons as horizontal row below.
-                 .canvas-sidebar dissolves via display:contents so .canvas-actions
-                 becomes a direct child of .canvas-row; its desktop presets bits are
-                 hidden (mobile presets render inside .panel-content instead). */
+              /* Mobile layout: centered preview. Sidebar dissolves via display:contents;
+                 its desktop presets are hidden (mobile presets render inside .panel-content). */
               .canvas-row { flex-direction: column; flex-wrap: nowrap; align-items: center; gap: 10px; max-width: 100%; height: auto; width: 100%; }
               .canvas-sidebar { display: contents; }
-              .canvas-sidebar > .presets-label,
-              .canvas-sidebar > .presets { display: none; }
+              .canvas-sidebar > * { display: none; }
               .canvas-wrap { width: 100%; max-width: 100%; height: auto; flex: none; aspect-ratio: 1 / 1; border-radius: 16px; margin: 0; order: 1; }
-              .canvas-actions { display: flex; flex-direction: row; gap: 6px; width: 100%; max-width: 100%; margin-top: 0; flex-shrink: 0; order: 2; }
-              .canvas-actions .btn { flex: 1; padding: 7px 6px; font-size: 11px; min-width: 0; }
+              .canvas-action-overlay {
+                top: 8px;
+                right: 8px;
+                flex-direction: row;
+                gap: 4px;
+                padding: 4px;
+                background: rgba(20,15,36,0.7);
+                border-color: rgba(255,255,255,0.08);
+              }
+              .canvas-action-overlay:hover {
+                background: rgba(20,15,36,0.7);
+              }
+              .overlay-btn {
+                padding: 5px 8px;
+                font-size: 10px;
+                background: rgba(255,255,255,0.06);
+              }
+              .overlay-btn-row {
+                gap: 0;
+              }
+              .overlay-btn-row .overlay-btn {
+                border-top-right-radius: 0;
+                border-bottom-right-radius: 0;
+                padding: 5px 6px;
+              }
+              .overlay-res-select {
+                font-size: 8px;
+                padding: 0 4px;
+              }
+              .canvas-action-overlay.hidden { opacity: 0; pointer-events: none; }
 
               /* Slimmer tab bar + tighter panel padding give the controls more
                  working area on every phone (requested for all mobile widths). */
               .tabs { height: 42px; }
+              .tab { font-size: 9px; letter-spacing: 0.02em; padding: 0 3px; }
               .panel-content { padding: 14px 16px; gap: 16px; }
-              .png-row { flex: 7; }
-              .png-row .btn { flex: 6; font-size: 10px; padding: 10px 4px; }
-              .res-select { flex: 1; font-size: 9px; padding: 3px 4px; min-width: 0; }
-              .canvas-actions .btn-secondary,
-              .canvas-actions .btn-share { flex: 6; }
-              .mobile-presets-wrap { display: block; }
               .mobile-presets { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
               .font-grid { grid-template-columns: 1fr 1fr 1fr; }
               .icon-btn[data-shortcut]::after { display: none; }
+              .color-picker-popover { top: auto; right: 12px; bottom: 12px; left: 12px; transform: none; }
             }
             @media (max-width: 380px) {
               .header h1 { font-size: 14px; }
               .canvas-wrap { flex: none; aspect-ratio: 1 / 1; width: 100%; height: auto; max-width: 100%; }
-              .canvas-actions .btn { padding: 9px 4px; font-size: 10px; }
-              .png-row .btn { padding: 9px 3px; font-size: 9px; }
-              .res-select { font-size: 8px; padding: 2px 3px; }
-              .canvas-actions .btn-secondary,
-              .canvas-actions .btn-share { flex: 6; }
               .control-row label { min-width: 76px; }
             }
 
             /* ── Wide / low-verticality phones (e.g. iPhone SE, Galaxy A35) ──
                These viewports are short relative to their width, so the
-               stacked square preview + action row eats the whole screen.
-               When the aspect ratio is wide enough, put the action buttons
-               back in a column sidebar beside a height-capped preview so the
-               controls panel keeps usable room below. */
+               stacked square preview eats the whole screen.
+               Cap the preview height so the controls panel keeps usable room below. */
             @media (max-width: 768px) and (min-aspect-ratio: 0.55) {
               .canvas-area { flex-shrink: 0; padding: 10px 12px; }
               .canvas-row { flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: center; gap: 12px; width: 100%; max-width: 100%; }
               .canvas-wrap { order: 1; width: auto; height: auto; max-height: 42dvh; max-width: 62%; aspect-ratio: 1 / 1; flex: 0 1 auto; margin: 0; }
-              .canvas-actions { order: 2; flex-direction: column; width: auto; min-width: 130px; max-width: 168px; flex: 0 0 auto; gap: 6px; margin-top: 0; }
-              .canvas-actions .btn { flex: none; width: 100%; padding: 8px 10px; }
-              .png-row { flex-direction: row; width: 100%; }
-              .png-row .btn { flex: 6; }
-              .res-select { flex: 1; }
             }
           `}</style>
 
@@ -1495,16 +2759,16 @@
               <span className="header-sub">Logo Generator</span>
               <div className="header-actions">
                 <button
-                  className="icon-btn" onClick={resetToDefault} disabled={isDefault}
+                  className="icon-btn icon-btn-action" onClick={resetToDefault} disabled={isDefault}
                   aria-label="Reset to default" title="Reset to default"
                 >↺</button>
                 <div className="undo-redo" role="group" aria-label="Undo and redo">
                   <button
-                    className="icon-btn" onClick={undo} disabled={!canUndo}
+                    className="icon-btn icon-btn-action" onClick={undo} disabled={!canUndo}
                     aria-label="Undo (Ctrl+Z)" title="Undo (Ctrl+Z)" data-shortcut="Ctrl+Z"
                   >↩</button>
                   <button
-                    className="icon-btn" onClick={redo} disabled={!canRedo}
+                    className="icon-btn icon-btn-action" onClick={redo} disabled={!canRedo}
                     aria-label="Redo (Ctrl+Y)" title="Redo (Ctrl+Y)" data-shortcut="Ctrl+Y"
                   >↪</button>
                 </div>
@@ -1516,88 +2780,124 @@
 
             <main className="canvas-area" aria-label="Canvas area">
               <div className="canvas-row">
-                {/* Desktop: presets + actions share the left column.
-                    Mobile: sidebar uses `display: contents` so .canvas-actions
-                    promotes into canvas-row and presets-label/presets are hidden
+                {/* Desktop: presets in the left column.
+                    Mobile: sidebar uses `display: contents`; desktop presets are hidden
                     (mobile presets are rendered separately inside .panel-content). */}
                 <div className="canvas-sidebar">
-                  <div className="presets-label" aria-hidden="true">Presets</div>
-                  <div className="presets" role="list" aria-label="Design presets">
-                    {PRESETS.map(p => (
-                      <PresetThumb
-                        key={p.name}
-                        preset={p}
-                        active={settings.name === p.name && settings.bgTop === p.bgTop}
-                        onClick={() => applyPreset(p)}
-                        fontLoaded={fontLoaded}
-                      />
-                    ))}
+                  <div className="section">
+                    <div className="section-header" style={{cursor:"default"}}>
+                      <span className="section-title">Presets</span>
+                    </div>
+                    {hasCustomized && !warnDismissed && (
+                      <div className="preset-storage-warn">
+                        <span>⚠</span> Custom presets are stored in browser storage. Export a preset bundle from the Export/Import tab to keep a backup.
+                        <button className="warn-dismiss" onClick={() => setWarnDismissed(true)} aria-label="Dismiss warning">&times;</button>
+                      </div>
+                    )}
+                    <div className="presets" role="list" aria-label="Design presets">
+                      {presetSlots.map(slot => slot.name ? (
+                        <div key={slot.slot} className="preset-slot-row">
+                          <PresetThumb
+                            preset={{ ...slot.settings, name: slot.name }}
+                            active={settings.name === slot.name && settings.bgTop === slot.settings?.bgTop}
+                            onClick={() => applyPreset(slot.settings)}
+                            fontLoaded={fontLoaded}
+                          />
+                          {slot.isShipped && slot.modifiedAt !== null && (
+                            <button className="slot-action-btn slot-reset-btn" onClick={() => handleResetSlotToShipped(slot.slot)} title={`Restore to shipped "${slot.originalName}"`}>↺</button>
+                          )}
+                          <button className="slot-action-btn slot-delete-btn" onClick={() => handleClearSlot(slot.slot)} title="Clear this slot">×</button>
+                        </div>
+                      ) : (
+                        <div key={slot.slot} className="preset-slot-empty" aria-hidden="true">— Empty slot —</div>
+                      ))}
+                    </div>
                   </div>
+                </div>
 
-                  <div className="canvas-actions">
-                    <div className="png-row">
-                      <button className="btn btn-primary" onClick={downloadPNG} aria-label="Download PNG">
-                        <span aria-hidden="true">↓</span> PNG <span className="res-label">{pngRes}×{pngRes}</span>
+                {/* Preview */}
+                <div
+                  className="canvas-wrap"
+                  role="img"
+                  onTouchEnd={(e) => {
+                    if (e.target.closest('.canvas-action-overlay')) return;
+                    setOverlayHidden(h => !h);
+                  }}
+                >
+                  <canvas ref={canvasRef} />
+                  <div className={`canvas-action-overlay ${overlayHidden ? "hidden" : ""}`}>
+                    <div className="overlay-btn-row">
+                      <button className="overlay-btn overlay-btn-png" onClick={downloadPNG} aria-label="Download PNG" title="Download PNG">
+                        <span className="overlay-btn-label"><span aria-hidden="true">↓</span> PNG</span>
+                        <span className="overlay-res-label">{pngRes}×{pngRes}</span>
                       </button>
-                      <select className="res-select" value={pngRes} onChange={e => setPngRes(Number(e.target.value))} aria-label="PNG resolution">
+                      <select className="overlay-res-select" value={pngRes} onChange={e => setPngRes(Number(e.target.value))} aria-label="PNG resolution">
                         <option value={700}>1×</option>
                         <option value={1400}>2×</option>
                         <option value={2800}>4×</option>
                       </select>
                     </div>
-                    <button className="btn btn-secondary" onClick={downloadSVG} aria-label="Download SVG">
+                    <button className="overlay-btn" onClick={downloadSVG} aria-label="Download SVG" title="Download SVG">
                       <span aria-hidden="true">↓</span> SVG
                     </button>
-                    <button className="btn btn-share" onClick={shareURL} aria-label="Copy shareable link">
-                      <span aria-hidden="true">⎘</span> Share
+                    <button className="overlay-btn" onClick={shareURL} aria-label="Copy share link" title="Share">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                      </svg>
+                      Share
                     </button>
                   </div>
-                </div>
-
-                {/* Preview */}
-                <div className="canvas-wrap" role="img">
-                  <canvas ref={canvasRef} />
                 </div>
               </div>
             </main>
 
             <div className="panel" role="complementary" aria-label="Design controls">
               <div className="tabs" role="tablist" aria-label="Control panels">
-                {["design","colors","export/import"].map(t => (
+                {[["design","Design"],["colors","Colors"],["effects","Effects"],["randomizer","Randomize"],["export/import",<>Export /<br/>Import</>]].map(([t,label]) => (
                   <button
                     key={t}
                     role="tab"
                     aria-selected={tab === t}
-                    className={`tab ${tab===t?"active":""}`}
+                    className={`tab ${tab===t?"active":""} ${t==="export/import"?"tab-multiline":""}`}
                     onClick={()=>setTab(t)}
-                  >{t}</button>
+                  >{label}</button>
                 ))}
               </div>
 
               <div className="panel-content" role="tabpanel">
-                {/* Mobile-only: presets at top of scrollable panel content.
-                    Hidden on export/import tab to give room for the import/export UI. */}
-                {tab !== "export/import" && (
-                  <div className="mobile-presets-wrap">
-                    <div className="presets-label mobile-presets-label" aria-hidden="true">Presets</div>
-                    <div className="presets mobile-presets" role="list" aria-label="Design presets">
-                      {PRESETS.map(p => (
-                        <PresetThumb
-                          key={p.name}
-                          preset={p}
-                          active={settings.name === p.name && settings.bgTop === p.bgTop}
-                          onClick={() => applyPreset(p)}
-                          fontLoaded={fontLoaded}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 {tab === "design" && (
                   <>
-                    <div className="section">
-                      <div className="section-title">Content</div>
+                    {isMobile && (
+                    <Section title="Presets" sectionKey="presets" defaultOpen={false}>
+                      {hasCustomized && !warnDismissed && (
+                        <div className="preset-storage-warn">
+                          <span>⚠</span> Custom presets are stored in browser storage. Export a preset bundle from the Export/Import tab to keep a backup.
+                          <button className="warn-dismiss" onClick={() => setWarnDismissed(true)} aria-label="Dismiss warning">&times;</button>
+                        </div>
+                      )}
+                      <div className="presets mobile-presets" role="list" aria-label="Design presets">
+                        {presetSlots.map(slot => slot.name ? (
+                          <div key={slot.slot} className="preset-slot-row">
+                            <PresetThumb
+                              preset={{ ...slot.settings, name: slot.name }}
+                              active={settings.name === slot.name && settings.bgTop === slot.settings?.bgTop}
+                              onClick={() => applyPreset(slot.settings)}
+                              fontLoaded={fontLoaded}
+                            />
+                            {slot.isShipped && slot.modifiedAt !== null && (
+                              <button className="slot-action-btn slot-reset-btn" onClick={() => handleResetSlotToShipped(slot.slot)} title={`Restore to shipped "${slot.originalName}"`}>↺</button>
+                            )}
+                            <button className="slot-action-btn slot-delete-btn" onClick={() => handleClearSlot(slot.slot)} title="Clear this slot">×</button>
+                          </div>
+                        ) : (
+                          <div key={slot.slot} className="preset-slot-empty" aria-hidden="true">— Empty slot —</div>
+                        ))}
+                      </div>
+                    </Section>
+                    )}
+                    <Section title="Content" sectionKey="content">
                       <div className="control-row">
                         <label htmlFor="input-letter">Big Letter</label>
                         <input id="input-letter" className="text-input" style={{maxWidth:60,textAlign:"center",fontSize:20}}
@@ -1611,10 +2911,9 @@
                           onChange={e=>set("name", e.target.value)}
                           aria-label="Name text" />
                       </div>
-                    </div>
+                    </Section>
 
-                    <div className="section">
-                      <div className="section-title">Font</div>
+                    <Section title="Font" sectionKey="font">
                       <div className="font-grid" role="group" aria-label="Font selection">
                         {FONTS.map(f => (
                           <button
@@ -1629,10 +2928,73 @@
                           </button>
                         ))}
                       </div>
-                    </div>
+                    </Section>
 
-                    <div className="section">
-                      <div className="section-title">Shape</div>
+                    <Section title="Typography" sectionKey="typography">
+                      <SliderRow label="Letter size" value={settings.letterSize} min={300} max={700} step={10} onChange={v=>set("letterSize",v)} unit="px" />
+                      <SliderRow label="Letter pos X" value={settings.letterOffsetX} min={-200} max={200} step={5} onChange={v=>set("letterOffsetX",v)} unit="px" />
+                      <SliderRow label="Letter pos Y" value={settings.letterOffsetY} min={-200} max={200} step={5} onChange={v=>set("letterOffsetY",v)} unit="px" />
+                      <SliderRow label="Name size" value={settings.nameSize} min={48} max={160} step={4} onChange={v=>set("nameSize",v)} unit="px" />
+                      <SliderRow label="Vertical position" value={settings.nameOffsetY} min={-200} max={200} step={5} onChange={v=>set("nameOffsetY",v)} unit="px" />
+                      <SliderRow label="Letter spacing" value={settings.letterSpacing} min={0} max={60} onChange={v=>set("letterSpacing",v)} unit="px" />
+                      <SliderRow label="Outline width" value={settings.outlineWidth} min={0} max={8} onChange={v=>set("outlineWidth",v)} unit="px" />
+                      <SliderRow label="Scale X" value={settings.letterScaleX} min={0.5} max={2} step={0.05} onChange={v=>set("letterScaleX",v)} unit="x" />
+                      <SliderRow label="Scale Y" value={settings.letterScaleY} min={0.5} max={2} step={0.05} onChange={v=>set("letterScaleY",v)} unit="x" />
+                      <SliderRow label="Skew X" value={settings.letterSkewX} min={-45} max={45} step={1} onChange={v=>set("letterSkewX",v)} unit="°" />
+                      <SliderRow label="Skew Y" value={settings.letterSkewY} min={-45} max={45} step={1} onChange={v=>set("letterSkewY",v)} unit="°" />
+                      <SliderRow label="Rotate" value={settings.letterRotate} min={-180} max={180} step={1} onChange={v=>set("letterRotate",v)} unit="°" />
+                    </Section>
+
+                    <Section title="Layers" sectionKey="layers">
+                      {(settings.layers || []).map((layer, idx) => (
+                        <div key={layer.id} className="toggle-row" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <button
+                            className={`toggle ${layer.visible !== false ? "on" : ""}`}
+                            onClick={() => {
+                              const newLayers = settings.layers.map(l =>
+                                l.id === layer.id ? { ...l, visible: !l.visible } : l
+                              );
+                              set("layers", newLayers);
+                            }}
+                            aria-pressed={layer.visible !== false}
+                            aria-label={`Toggle ${layer.label}`}
+                          />
+                          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", flex: 1 }}>{layer.label}</span>
+                          {layer.id !== "background" && (
+                            <>
+                              <button
+                                className="icon-btn"
+                                disabled={idx <= 1}
+                                onClick={() => {
+                                  if (idx <= 1) return;
+                                  const newLayers = [...settings.layers];
+                                  [newLayers[idx - 1], newLayers[idx]] = [newLayers[idx], newLayers[idx - 1]];
+                                  set("layers", newLayers);
+                                }}
+                                title="Move up"
+                                aria-label="Move layer up"
+                                style={{ padding: "2px 6px", fontSize: 11 }}
+                              >↑</button>
+                              <button
+                                className="icon-btn"
+                                disabled={idx >= settings.layers.length - 1}
+                                onClick={() => {
+                                  if (idx >= settings.layers.length - 1) return;
+                                  const newLayers = [...settings.layers];
+                                  [newLayers[idx], newLayers[idx + 1]] = [newLayers[idx + 1], newLayers[idx]];
+                                  set("layers", newLayers);
+                                }}
+                                title="Move down"
+                                aria-label="Move layer down"
+                                style={{ padding: "2px 6px", fontSize: 11 }}
+                              >↓</button>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </Section>
+
+                    <Section title="Shape" sectionKey="shape">
                       <div className="shape-picker" role="group" aria-label="Shape selection">
                         {SHAPES.map(s => (
                           <button
@@ -1643,21 +3005,9 @@
                           >{s}</button>
                         ))}
                       </div>
-                    </div>
+                    </Section>
 
-                    <div className="section">
-                      <div className="section-title">Typography</div>
-                      <SliderRow label="Letter size" value={settings.letterSize} min={300} max={700} step={10} onChange={v=>set("letterSize",v)} unit="px" />
-                      <SliderRow label="Letter pos X" value={settings.letterOffsetX} min={-200} max={200} step={5} onChange={v=>set("letterOffsetX",v)} unit="px" />
-                      <SliderRow label="Letter pos Y" value={settings.letterOffsetY} min={-200} max={200} step={5} onChange={v=>set("letterOffsetY",v)} unit="px" />
-                      <SliderRow label="Name size" value={settings.nameSize} min={48} max={160} step={4} onChange={v=>set("nameSize",v)} unit="px" />
-                      <SliderRow label="Vertical position" value={settings.nameOffsetY} min={-200} max={200} step={5} onChange={v=>set("nameOffsetY",v)} unit="px" />
-                      <SliderRow label="Letter spacing" value={settings.letterSpacing} min={0} max={60} onChange={v=>set("letterSpacing",v)} unit="px" />
-                      <SliderRow label="Outline width" value={settings.outlineWidth} min={0} max={8} onChange={v=>set("outlineWidth",v)} unit="px" />
-                    </div>
-
-                    <div className="section">
-                      <div className="section-title">Texture</div>
+                    <Section title="Texture" sectionKey="texture">
                       <div className="shape-picker" role="group" aria-label="Texture selection">
                         {TEXTURES.map(t => (
                           <button
@@ -1668,10 +3018,9 @@
                           >{t}</button>
                         ))}
                       </div>
-                    </div>
+                    </Section>
 
-                    <div className={`section ${noShape ? "section-disabled" : ""}`}>
-                      <div className="section-title">Rings</div>
+                    <Section title="Rings" sectionKey="rings">
                       <div className="toggle-row">
                         <label>Outer ring</label>
                         <button className={`toggle ${settings.showRing1?"on":""}`} onClick={()=>set("showRing1",!settings.showRing1)} aria-pressed={settings.showRing1} aria-label="Toggle outer ring" />
@@ -1685,80 +3034,484 @@
                         <SliderRow label="Width" value={settings.ring2Width} min={1} max={12} onChange={v=>set("ring2Width",v)} unit="px" />
                         <SliderRow label="Gap from outer" value={settings.ring1Gap} min={4} max={60} onChange={v=>set("ring1Gap",v)} unit="px" />
                       </>}
-                    </div>
-
-                    <div className="section">
-                      <div className="section-title">Glow</div>
-                      <div className="toggle-row">
-                        <label>Enable glow</label>
-                        <button className={`toggle ${settings.glow?"on":""}`} onClick={()=>set("glow",!settings.glow)} aria-pressed={settings.glow} aria-label="Toggle glow" />
-                      </div>
-                      {settings.glow && <SliderRow label="Intensity" value={settings.glowIntensity} min={0.2} max={3} step={0.1} onChange={v=>set("glowIntensity",v)} />}
-                    </div>
+                    </Section>
                   </>
                 )}
 
                 {tab === "colors" && (
                   <>
-                    <div className={`section ${noShape ? "section-disabled" : ""}`}>
-                      <div className="section-title">Background</div>
-                      <ColorRow label="Top color" value={settings.bgTop} onChange={v=>set("bgTop",v)} />
-                      <ColorRow label="Bottom color" value={settings.bgBot} onChange={v=>set("bgBot",v)} />
-                      <div className="shape-picker" style={{marginTop: 8}}>
-                        {["linear", "radial"].map(t => (
-                          <button key={t} className={`shape-btn ${settings.bgGradientType===t?"active":""}`} onClick={()=>set("bgGradientType", t)} aria-pressed={settings.bgGradientType === t}>{t}</button>
+                    {isMobile && (
+                    <Section title="Presets" sectionKey="presets" defaultOpen={false}>
+                      {hasCustomized && !warnDismissed && (
+                        <div className="preset-storage-warn">
+                          <span>⚠</span> Custom presets are stored in browser storage. Export a preset bundle from the Export/Import tab to keep a backup.
+                          <button className="warn-dismiss" onClick={() => setWarnDismissed(true)} aria-label="Dismiss warning">&times;</button>
+                        </div>
+                      )}
+                      <div className="presets mobile-presets" role="list" aria-label="Design presets">
+                        {presetSlots.map(slot => slot.name ? (
+                          <div key={slot.slot} className="preset-slot-row">
+                            <PresetThumb
+                              preset={{ ...slot.settings, name: slot.name }}
+                              active={settings.name === slot.name && settings.bgTop === slot.settings?.bgTop}
+                              onClick={() => applyPreset(slot.settings)}
+                              fontLoaded={fontLoaded}
+                            />
+                            {slot.isShipped && slot.modifiedAt !== null && (
+                              <button className="slot-action-btn slot-reset-btn" onClick={() => handleResetSlotToShipped(slot.slot)} title={`Restore to shipped "${slot.originalName}"`}>↺</button>
+                            )}
+                            <button className="slot-action-btn slot-delete-btn" onClick={() => handleClearSlot(slot.slot)} title="Clear this slot">×</button>
+                          </div>
+                        ) : (
+                          <div key={slot.slot} className="preset-slot-empty" aria-hidden="true">— Empty slot —</div>
                         ))}
                       </div>
-                      {settings.bgGradientType === "linear" && (
-                        <SliderRow label="Angle" value={settings.bgGradientAngle} min={0} max={360} onChange={v=>set("bgGradientAngle",v)} unit="°" />
-                      )}
-                      <SliderRow label="Color Stop" value={settings.bgGradientStop} min={10} max={100} onChange={v=>set("bgGradientStop",v)} unit="%" />
-                    </div>
-                    <div className="section">
-                      <div className="section-title">Big Letter</div>
-                      <ColorRow label="Gradient top" value={settings.kTop} onChange={v=>set("kTop",v)} />
-                      <ColorRow label="Gradient bot" value={settings.kBot} onChange={v=>set("kBot",v)} />
-                      <div className="shape-picker" style={{marginTop: 8}}>
-                        {["linear", "radial"].map(t => (
-                          <button key={t} className={`shape-btn ${settings.kGradientType===t?"active":""}`} onClick={()=>set("kGradientType", t)} aria-pressed={settings.kGradientType === t}>{t}</button>
+                    </Section>
+                    )}
+                    <Section title="Background" sectionKey="bg">
+                      <div className="shape-picker" role="group" aria-label="Background fill mode">
+                        {["solid", "gradient"].map(m => (
+                          <button key={m} type="button" className={`shape-btn ${settings.bgMode === m ? "active" : ""}`}
+                            onClick={() => set("bgMode", m)} aria-pressed={settings.bgMode === m}>{m}</button>
                         ))}
                       </div>
-                      {settings.kGradientType === "linear" && (
-                        <SliderRow label="Angle" value={settings.kGradientAngle} min={0} max={360} onChange={v=>set("kGradientAngle",v)} unit="°" />
-                      )}
-                      <SliderRow label="Color Stop" value={settings.kGradientStop} min={10} max={100} onChange={v=>set("kGradientStop",v)} unit="%" />
-                      {settings.glow && <div style={{marginTop: 8}}><ColorRow label="Glow color" value={settings.glowColor} onChange={v=>set("glowColor",v)} /></div>}
-                    </div>
-                    <div className="section">
-                      <div className="section-title">Name Text</div>
-                      <ColorRow label="Gradient top" value={settings.nameTop} onChange={v=>set("nameTop",v)} />
-                      <ColorRow label="Gradient bot" value={settings.nameBot} onChange={v=>set("nameBot",v)} />
-                      <div className="shape-picker" style={{marginTop: 8}}>
-                        {["linear", "radial"].map(t => (
-                          <button key={t} className={`shape-btn ${settings.nameGradientType===t?"active":""}`} onClick={()=>set("nameGradientType", t)} aria-pressed={settings.nameGradientType === t}>{t}</button>
+                      <ColorPickerRow label="Top color" value={settings.bgTop} onChange={v=>set("bgTop",v)} />
+                      {settings.bgMode !== "solid" && <>
+                        <ColorPickerRow label="Bottom color" value={settings.bgBot} onChange={v=>set("bgBot",v)} />
+                        <div className="shape-picker" style={{marginTop: 8}}>
+                          {["linear", "radial"].map(t => (
+                            <button key={t} className={`shape-btn ${settings.bgGradientType===t?"active":""}`} onClick={()=>set("bgGradientType", t)} aria-pressed={settings.bgGradientType === t}>{t}</button>
+                          ))}
+                        </div>
+                        {settings.bgGradientType === "linear" && (
+                          <SliderRow label="Angle" value={settings.bgGradientAngle} min={0} max={360} onChange={v=>set("bgGradientAngle",v)} unit="°" />
+                        )}
+                        <SliderRow label="Color Stop" value={settings.bgGradientStop} min={10} max={100} onChange={v=>set("bgGradientStop",v)} unit="%" />
+                      </>}
+                    </Section>
+                    <Section title="Big Letter" sectionKey="bigLetterColor">
+                      <div className="shape-picker" role="group" aria-label="Big letter fill mode">
+                        {["solid", "gradient"].map(m => (
+                          <button key={m} type="button" className={`shape-btn ${settings.kMode === m ? "active" : ""}`}
+                            onClick={() => set("kMode", m)} aria-pressed={settings.kMode === m}>{m}</button>
                         ))}
                       </div>
-                      {settings.nameGradientType === "linear" && (
-                        <SliderRow label="Angle" value={settings.nameGradientAngle} min={0} max={360} onChange={v=>set("nameGradientAngle",v)} unit="°" />
-                      )}
-                      <SliderRow label="Color Stop" value={settings.nameGradientStop} min={10} max={100} onChange={v=>set("nameGradientStop",v)} unit="%" />
-                      <div style={{marginTop: 8}}><ColorRow label="Outline color" value={settings.outlineColor} onChange={v=>set("outlineColor",v)} /></div>
-                    </div>
-                    <div className={`section ${noShape ? "section-disabled" : ""}`}>
-                      <div className="section-title">Rings</div>
-                      {settings.showRing1 && <ColorRow label="Outer ring" value={settings.ring1} onChange={v=>set("ring1",v)} />}
-                      {settings.showRing2 && <ColorRow label="Inner ring" value={settings.ring2} onChange={v=>set("ring2",v)} />}
+                      <ColorPickerRow label="Color" value={settings.kTop} onChange={v=>set("kTop",v)} />
+                      {settings.kMode !== "solid" && <>
+                        <ColorPickerRow label="Gradient bot" value={settings.kBot} onChange={v=>set("kBot",v)} />
+                        <div className="shape-picker" style={{marginTop: 8}}>
+                          {["linear", "radial"].map(t => (
+                            <button key={t} className={`shape-btn ${settings.kGradientType===t?"active":""}`} onClick={()=>set("kGradientType", t)} aria-pressed={settings.kGradientType === t}>{t}</button>
+                          ))}
+                        </div>
+                        {settings.kGradientType === "linear" && (
+                          <SliderRow label="Angle" value={settings.kGradientAngle} min={0} max={360} onChange={v=>set("kGradientAngle",v)} unit="°" />
+                        )}
+                        <SliderRow label="Color Stop" value={settings.kGradientStop} min={10} max={100} onChange={v=>set("kGradientStop",v)} unit="%" />
+                      </>}
+                      <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 8, marginTop: 4 }}>
+                        <label style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600 }}>Blend Mode</label>
+                        <select
+                          value={settings.letterBlendMode || "normal"}
+                          onChange={e => set("letterBlendMode", e.target.value)}
+                          style={{ width: "100%", padding: "8px 10px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, color: "rgba(255,255,255,0.7)", fontFamily: "'Poppins', sans-serif", fontSize: 12, marginTop: 6, cursor: "pointer", appearance: "auto" }}
+                        >
+                          {BLEND_MODES.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                        <SliderRow label="Opacity" value={settings.letterOpacity ?? 1.0} min={0} max={1} step={0.05} onChange={v=>set("letterOpacity",v)} />
+                      </div>
+                    </Section>
+                    <Section title="Name Text" sectionKey="nameColor">
+                      <div className="shape-picker" role="group" aria-label="Name text fill mode">
+                        {["solid", "gradient"].map(m => (
+                          <button key={m} type="button" className={`shape-btn ${settings.nameMode === m ? "active" : ""}`}
+                            onClick={() => set("nameMode", m)} aria-pressed={settings.nameMode === m}>{m}</button>
+                        ))}
+                      </div>
+                      <ColorPickerRow label="Color" value={settings.nameTop} onChange={v=>set("nameTop",v)} />
+                      {settings.nameMode !== "solid" && <>
+                        <ColorPickerRow label="Gradient bot" value={settings.nameBot} onChange={v=>set("nameBot",v)} />
+                        <div className="shape-picker" style={{marginTop: 8}}>
+                          {["linear", "radial"].map(t => (
+                            <button key={t} className={`shape-btn ${settings.nameGradientType===t?"active":""}`} onClick={()=>set("nameGradientType", t)} aria-pressed={settings.nameGradientType === t}>{t}</button>
+                          ))}
+                        </div>
+                        {settings.nameGradientType === "linear" && (
+                          <SliderRow label="Angle" value={settings.nameGradientAngle} min={0} max={360} onChange={v=>set("nameGradientAngle",v)} unit="°" />
+                        )}
+                        <SliderRow label="Color Stop" value={settings.nameGradientStop} min={10} max={100} onChange={v=>set("nameGradientStop",v)} unit="%" />
+                      </>}
+                      <div style={{marginTop: 8}}><ColorPickerRow label="Outline color" value={settings.outlineColor} onChange={v=>set("outlineColor",v)} /></div>
+                    </Section>
+                    <Section title="Rings" sectionKey="ringColors">
+                      {settings.showRing1 && <ColorPickerRow label="Outer ring" value={settings.ring1} onChange={v=>set("ring1",v)} />}
+                      {settings.showRing2 && <ColorPickerRow label="Inner ring" value={settings.ring2} onChange={v=>set("ring2",v)} />}
                       {!settings.showRing1 && !settings.showRing2 && (
                         <p style={{fontSize:11, color:"rgba(255,255,255,0.3)"}}>Both rings disabled — enable them in Design tab.</p>
                       )}
-                    </div>
+                    </Section>
                   </>
                 )}
 
+                {tab === "effects" && (
+                  <>
+                    {isMobile && (
+                    <Section title="Presets" sectionKey="presets" defaultOpen={false}>
+                      {hasCustomized && !warnDismissed && (
+                        <div className="preset-storage-warn">
+                          <span>⚠</span> Custom presets are stored in browser storage. Export a preset bundle from the Export/Import tab to keep a backup.
+                          <button className="warn-dismiss" onClick={() => setWarnDismissed(true)} aria-label="Dismiss warning">&times;</button>
+                        </div>
+                      )}
+                      <div className="presets mobile-presets" role="list" aria-label="Design presets">
+                        {presetSlots.map(slot => slot.name ? (
+                          <div key={slot.slot} className="preset-slot-row">
+                            <PresetThumb
+                              preset={{ ...slot.settings, name: slot.name }}
+                              active={settings.name === slot.name && settings.bgTop === slot.settings?.bgTop}
+                              onClick={() => applyPreset(slot.settings)}
+                              fontLoaded={fontLoaded}
+                            />
+                            {slot.isShipped && slot.modifiedAt !== null && (
+                              <button className="slot-action-btn slot-reset-btn" onClick={() => handleResetSlotToShipped(slot.slot)} title={`Restore to shipped "${slot.originalName}"`}>↺</button>
+                            )}
+                            <button className="slot-action-btn slot-delete-btn" onClick={() => handleClearSlot(slot.slot)} title="Clear this slot">×</button>
+                          </div>
+                        ) : (
+                          <div key={slot.slot} className="preset-slot-empty" aria-hidden="true">— Empty slot —</div>
+                        ))}
+                      </div>
+                    </Section>
+                    )}
+                    <Section title="Glow" sectionKey="effects_glow">
+                      <div className="toggle-row">
+                        <label>Enable glow</label>
+                        <button
+                          className={`toggle ${settings.effects.glow.enabled ? "on" : ""}`}
+                          onClick={() => setEffect("glow", "enabled", !settings.effects.glow.enabled)}
+                          aria-pressed={settings.effects.glow.enabled}
+                          aria-label="Toggle glow"
+                        />
+                      </div>
+                      {settings.effects.glow.enabled && (
+                        <>
+                          <SliderRow label="Intensity" value={settings.effects.glow.intensity}
+                            min={0.2} max={3} step={0.1}
+                            onChange={v => setEffect("glow", "intensity", v)} />
+                          <ColorPickerRow label="Glow color" value={settings.effects.glow.color}
+                            onChange={v => setEffect("glow", "color", v)} />
+                        </>
+                      )}
+                    </Section>
+
+                    <Section title="Drop Shadow" sectionKey="effects_shadow" defaultOpen={false}>
+                      <div className="toggle-row">
+                        <label>Enable shadow</label>
+                        <button
+                          className={`toggle ${settings.effects.shadow.enabled ? "on" : ""}`}
+                          onClick={() => setEffect("shadow", "enabled", !settings.effects.shadow.enabled)}
+                          aria-pressed={settings.effects.shadow.enabled}
+                          aria-label="Toggle drop shadow"
+                        />
+                      </div>
+                      {settings.effects.shadow.enabled && (
+                        <>
+                          <SliderRow label="Offset X" value={settings.effects.shadow.dx}
+                            min={-50} max={50} step={1}
+                            onChange={v => setEffect("shadow", "dx", v)} unit="px" />
+                          <SliderRow label="Offset Y" value={settings.effects.shadow.dy}
+                            min={-50} max={50} step={1}
+                            onChange={v => setEffect("shadow", "dy", v)} unit="px" />
+                          <SliderRow label="Blur" value={settings.effects.shadow.blur}
+                            min={0} max={40} step={1}
+                            onChange={v => setEffect("shadow", "blur", v)} unit="px" />
+                          <SliderRow label="Opacity" value={settings.effects.shadow.opacity}
+                            min={0} max={1} step={0.05}
+                            onChange={v => setEffect("shadow", "opacity", v)} />
+                          <ColorPickerRow label="Shadow color" value={settings.effects.shadow.color}
+                            onChange={v => setEffect("shadow", "color", v)} />
+                        </>
+                      )}
+                    </Section>
+
+                    <Section title="Emboss / Bevel" sectionKey="effects_emboss" defaultOpen={false}>
+                      <div className="toggle-row">
+                        <label>Enable emboss</label>
+                        <button
+                          className={`toggle ${settings.effects.emboss.enabled ? "on" : ""}`}
+                          onClick={() => setEffect("emboss", "enabled", !settings.effects.emboss.enabled)}
+                          aria-pressed={settings.effects.emboss.enabled}
+                          aria-label="Toggle emboss"
+                        />
+                      </div>
+                      {settings.effects.emboss.enabled && (
+                        <>
+                          <SliderRow label="Depth" value={settings.effects.emboss.depth}
+                            min={1} max={10} step={1}
+                            onChange={v => setEffect("emboss", "depth", v)} unit="px" />
+                          <SliderRow label="Angle" value={settings.effects.emboss.angle}
+                            min={0} max={360} step={1}
+                            onChange={v => setEffect("emboss", "angle", v)} unit="°" />
+                          <SliderRow label="Opacity" value={settings.effects.emboss.opacity}
+                            min={0} max={1} step={0.05}
+                            onChange={v => setEffect("emboss", "opacity", v)} />
+                          <ColorPickerRow label="Highlight" value={settings.effects.emboss.highlight}
+                            onChange={v => setEffect("emboss", "highlight", v)} />
+                          <ColorPickerRow label="Shadow" value={settings.effects.emboss.shadow}
+                            onChange={v => setEffect("emboss", "shadow", v)} />
+                        </>
+                      )}
+                    </Section>
+
+                    <Section title="Name Glow" sectionKey="effects_nameGlow" defaultOpen={false}>
+                      <div className="toggle-row">
+                        <label>Enable name glow</label>
+                        <button
+                          className={`toggle ${settings.effects.nameGlow.enabled ? "on" : ""}`}
+                          onClick={() => setEffect("nameGlow", "enabled", !settings.effects.nameGlow.enabled)}
+                          aria-pressed={settings.effects.nameGlow.enabled}
+                          aria-label="Toggle name glow"
+                        />
+                      </div>
+                      {settings.effects.nameGlow.enabled && (
+                        <>
+                          <SliderRow label="Intensity" value={settings.effects.nameGlow.intensity}
+                            min={0.2} max={3} step={0.1}
+                            onChange={v => setEffect("nameGlow", "intensity", v)} />
+                          <ColorPickerRow label="Name glow color" value={settings.effects.nameGlow.color}
+                            onChange={v => setEffect("nameGlow", "color", v)} />
+                        </>
+                      )}
+                    </Section>
+
+                    <Section title="Name Shadow" sectionKey="effects_nameShadow" defaultOpen={false}>
+                      <div className="toggle-row">
+                        <label>Enable name shadow</label>
+                        <button
+                          className={`toggle ${settings.effects.nameShadow.enabled ? "on" : ""}`}
+                          onClick={() => setEffect("nameShadow", "enabled", !settings.effects.nameShadow.enabled)}
+                          aria-pressed={settings.effects.nameShadow.enabled}
+                          aria-label="Toggle name shadow"
+                        />
+                      </div>
+                      {settings.effects.nameShadow.enabled && (
+                        <>
+                          <SliderRow label="Offset X" value={settings.effects.nameShadow.dx}
+                            min={-50} max={50} step={1}
+                            onChange={v => setEffect("nameShadow", "dx", v)} unit="px" />
+                          <SliderRow label="Offset Y" value={settings.effects.nameShadow.dy}
+                            min={-50} max={50} step={1}
+                            onChange={v => setEffect("nameShadow", "dy", v)} unit="px" />
+                          <SliderRow label="Blur" value={settings.effects.nameShadow.blur}
+                            min={0} max={40} step={1}
+                            onChange={v => setEffect("nameShadow", "blur", v)} unit="px" />
+                          <SliderRow label="Opacity" value={settings.effects.nameShadow.opacity}
+                            min={0} max={1} step={0.05}
+                            onChange={v => setEffect("nameShadow", "opacity", v)} />
+                          <ColorPickerRow label="Name shadow color" value={settings.effects.nameShadow.color}
+                            onChange={v => setEffect("nameShadow", "color", v)} />
+                        </>
+                      )}
+                    </Section>
+                  </>
+                )}
+                {tab === "randomizer" && (
+                  <div className="randomizer-tab">
+                    {isMobile && (
+                    <Section title="Presets" sectionKey="presets" defaultOpen={false}>
+                      {hasCustomized && !warnDismissed && (
+                        <div className="preset-storage-warn">
+                          <span>⚠</span> Custom presets are stored in browser storage. Export a preset bundle from the Export/Import tab to keep a backup.
+                          <button className="warn-dismiss" onClick={() => setWarnDismissed(true)} aria-label="Dismiss warning">&times;</button>
+                        </div>
+                      )}
+                      <div className="presets mobile-presets" role="list" aria-label="Design presets">
+                        {presetSlots.map(slot => slot.name ? (
+                          <div key={slot.slot} className="preset-slot-row">
+                            <PresetThumb
+                              preset={{ ...slot.settings, name: slot.name }}
+                              active={settings.name === slot.name && settings.bgTop === slot.settings?.bgTop}
+                              onClick={() => applyPreset(slot.settings)}
+                              fontLoaded={fontLoaded}
+                            />
+                            {slot.isShipped && slot.modifiedAt !== null && (
+                              <button className="slot-action-btn slot-reset-btn" onClick={() => handleResetSlotToShipped(slot.slot)} title={`Restore to shipped "${slot.originalName}"`}>↺</button>
+                            )}
+                            <button className="slot-action-btn slot-delete-btn" onClick={() => handleClearSlot(slot.slot)} title="Clear this slot">×</button>
+                          </div>
+                        ) : (
+                          <div key={slot.slot} className="preset-slot-empty" aria-hidden="true">— Empty slot —</div>
+                        ))}
+                      </div>
+                    </Section>
+                    )}
+                    <p className="export-desc">
+                      Lock the categories you want to keep, then hit Randomize. Locked categories stay; everything else gets new values.
+                    </p>
+                    <div className="randomizer-locks">
+                      {Object.keys(RANDOMIZER_CATEGORIES).map(cat => {
+                        const uiState = loadUIState();
+                        const isLocked = !!(uiState.randomizerLocks?.[cat]);
+                        return (
+                          <div key={cat} className="toggle-row">
+                            <label>{RANDOMIZER_CATEGORY_LABELS[cat]}</label>
+                            <button
+                              type="button"
+                              className={`toggle ${isLocked ? "on" : ""}`}
+                              onClick={() => {
+                                const next = loadUIState();
+                                next.randomizerLocks = { ...(next.randomizerLocks || {}), [cat]: !isLocked };
+                                try { localStorage.setItem(UI_STATE_KEY, JSON.stringify(next)); } catch {}
+                                setRandomizerTick(t => t + 1);
+                              }}
+                              aria-pressed={isLocked}
+                              aria-label={`Lock ${RANDOMIZER_CATEGORY_LABELS[cat]}`}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {(() => {
+                      const anyLocked = Object.keys(RANDOMIZER_CATEGORIES).some(cat => loadUIState().randomizerLocks?.[cat]);
+                      return (
+                        <button
+                          type="button"
+                          className="reset-locks-btn"
+                          onClick={() => {
+                            const next = loadUIState();
+                            next.randomizerLocks = {};
+                            try { localStorage.setItem(UI_STATE_KEY, JSON.stringify(next)); } catch {}
+                            setRandomizerTick(t => t + 1);
+                          }}
+                          disabled={!anyLocked}
+                          style={{
+                            width: '100%', padding: '10px', marginTop: '12px',
+                            background: 'rgba(255,255,255,0.04)',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                            borderRadius: '8px',
+                            color: anyLocked ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.3)',
+                            fontFamily: "'Poppins', sans-serif", fontSize: '13px', fontWeight: '600',
+                            cursor: anyLocked ? 'pointer' : 'not-allowed',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                            transition: 'all 0.2s ease'
+                          }}
+                          aria-label="Reset all category locks"
+                        >
+                          🔓 Reset Locks
+                        </button>
+                      );
+                    })()}
+                    <button
+                      className="randomize-global-btn"
+                      onClick={handleRandomize}
+                      style={{
+                        width: '100%', padding: '14px', marginTop: '12px',
+                        background: 'rgba(255,200,40,0.06)',
+                        border: '1px solid rgba(255,200,40,0.2)',
+                        borderRadius: '8px', color: '#ffc828',
+                        fontFamily: "'Poppins', sans-serif", fontSize: '14px', fontWeight: '600',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', gap: '8px', transition: 'all 0.2s ease'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,200,40,0.12)'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,200,40,0.06)'}
+                    >
+                      🎲 Randomize Design
+                    </button>
+                  </div>
+                )}
+
                 {tab === "export/import" && (
-                  <div className="export-wrap">
-                    <div className="export-section">
-                      <div className="section-title">Download</div>
+                  <>
+                    {isMobile && (
+                    <Section title="Presets" sectionKey="presets" defaultOpen={false}>
+                      {hasCustomized && !warnDismissed && (
+                        <div className="preset-storage-warn">
+                          <span>⚠</span> Custom presets are stored in browser storage. Export a preset bundle from the Export/Import tab to keep a backup.
+                          <button className="warn-dismiss" onClick={() => setWarnDismissed(true)} aria-label="Dismiss warning">&times;</button>
+                        </div>
+                      )}
+                      <div className="presets mobile-presets" role="list" aria-label="Design presets">
+                        {presetSlots.map(slot => slot.name ? (
+                          <div key={slot.slot} className="preset-slot-row">
+                            <PresetThumb
+                              preset={{ ...slot.settings, name: slot.name }}
+                              active={settings.name === slot.name && settings.bgTop === slot.settings?.bgTop}
+                              onClick={() => applyPreset(slot.settings)}
+                              fontLoaded={fontLoaded}
+                            />
+                            {slot.isShipped && slot.modifiedAt !== null && (
+                              <button className="slot-action-btn slot-reset-btn" onClick={() => handleResetSlotToShipped(slot.slot)} title={`Restore to shipped "${slot.originalName}"`}>↺</button>
+                            )}
+                            <button className="slot-action-btn slot-delete-btn" onClick={() => handleClearSlot(slot.slot)} title="Clear this slot">×</button>
+                          </div>
+                        ) : (
+                          <div key={slot.slot} className="preset-slot-empty" aria-hidden="true">— Empty slot —</div>
+                        ))}
+                      </div>
+                    </Section>
+                    )}
+                    <Section title="Manage Presets" sectionKey="managePresets" defaultOpen={false}>
+                      {hasCustomized && !warnDismissed && (
+                        <div className="preset-storage-warn preset-storage-warn-lg">
+                          <span>⚠</span>
+                          <span>Your custom presets are stored in browser storage and will be lost if you clear your site data or history. Export a preset bundle now to keep a permanent backup.</span>
+                          <button className="warn-dismiss" onClick={() => setWarnDismissed(true)} aria-label="Dismiss warning">&times;</button>
+                        </div>
+                      )}
+                      <button className="btn btn-primary export-btn" onClick={exportPresets}>
+                        <span className="btn-icon" aria-hidden="true">↓</span> Export all presets
+                      </button>
+                      <label className="btn btn-secondary export-btn" style={{cursor:"pointer"}}>
+                        <span className="btn-icon" aria-hidden="true">↑</span> Import presets from file
+                        <input type="file" accept=".json,application/json" style={{display:"none"}} onChange={importPresets} aria-label="Import preset bundle" />
+                      </label>
+                      {importPresetsError && <div className="import-error" role="alert">{importPresetsError}</div>}
+                      {importPresetsSuccess && <div className="import-success" role="status">✓ Presets loaded successfully!</div>}
+                      <div className="export-divider" />
+                      <p className="export-desc">Choose a preset slot to save the current canvas state. Slots 1–6 are the shipped defaults — they can be freely replaced. Slots 7–10 are yours to fill.</p>
+                      {!saveSlotMode ? (
+                        <button className="btn btn-primary export-btn" onClick={() => { setSaveSlotMode(true); setSaveSlotName(settings.name || ""); setSelectedSlotIndex(null); setSaveSlotError(null); }}>
+                          Save current design as preset
+                        </button>
+                      ) : (
+                        <div className="slot-picker">
+                          <div className="slot-picker-grid">
+                            {presetSlots.map(slot => (
+                              <button
+                                key={slot.slot}
+                                className={`slot-picker-item ${selectedSlotIndex === slot.slot ? "selected" : ""} ${slot.isShipped && slot.modifiedAt === null ? "is-default" : ""}`}
+                                onClick={() => { setSelectedSlotIndex(slot.slot); setSaveSlotError(null); }}
+                              >
+                                <span className="slot-picker-num">{slot.slot + 1}</span>
+                                <span className="slot-picker-name">{slot.name || "— empty —"}</span>
+                                {slot.isShipped && slot.modifiedAt === null && <span className="slot-picker-badge">Default ★</span>}
+                              </button>
+                            ))}
+                          </div>
+                          {selectedSlotIndex !== null && (
+                            <div className="save-slot-row">
+                              <input
+                                className="text-input"
+                                value={saveSlotName}
+                                onChange={e => { setSaveSlotName(e.target.value); setSaveSlotError(null); }}
+                                onKeyDown={e => { if (e.key === "Enter") commitSaveToSlot(); if (e.key === "Escape") { setSaveSlotMode(false); setSelectedSlotIndex(null); setSaveSlotError(null); } }}
+                                placeholder="Enter preset name..."
+                                autoFocus
+                              />
+                              <div className="save-slot-btns">
+                                <button className="btn btn-primary" onClick={commitSaveToSlot}>
+                                  {presetSlots[selectedSlotIndex]?.name ? `Replace "${presetSlots[selectedSlotIndex].name}"` : "Save"}
+                                </button>
+                                <button className="btn btn-secondary" onClick={() => { setSaveSlotMode(false); setSelectedSlotIndex(null); setSaveSlotError(null); }}>Cancel</button>
+                              </div>
+                            </div>
+                          )}
+                          {saveSlotError && <div className="import-error" role="alert">{saveSlotError}</div>}
+                        </div>
+                      )}
+                    </Section>
+                    <Section title="Download" sectionKey="exportDownload">
                       <p className="export-desc">Export your monogram as a high-res PNG (raster) or scalable SVG (vector, ideal for logos).</p>
                       <div className="png-row">
                         <button className="btn btn-primary export-btn" onClick={downloadPNG}>
@@ -1773,18 +3526,14 @@
                       <button className="btn btn-secondary export-btn" onClick={downloadSVG}>
                         <span className="btn-icon" aria-hidden="true">↓</span> Download SVG
                       </button>
-                    </div>
-                    <div className="export-divider" />
-                    <div className="export-section">
-                      <div className="section-title">Share</div>
+                    </Section>
+                    <Section title="Share" sectionKey="exportShare">
                       <p className="export-desc">Copy a URL with your full design encoded. Anyone with the link will see your exact settings.</p>
                       <button className="btn btn-share export-btn" onClick={shareURL}>
                         <span className="btn-icon" aria-hidden="true">⎘</span> Copy Share Link
                       </button>
-                    </div>
-                    <div className="export-divider" />
-                    <div className="export-section">
-                      <div className="section-title">Save / Load JSON</div>
+                    </Section>
+                    <Section title="Save / Load JSON" sectionKey="exportJson">
                       <p className="export-desc">Export your settings as JSON to back them up, or import a previously saved file.</p>
                       <button className="btn btn-primary export-btn" onClick={exportJSON}>
                         <span className="btn-icon" aria-hidden="true">↓</span> Export JSON
@@ -1795,44 +3544,13 @@
                       </label>
                       {importError && <div className="import-error" role="alert">{importError}</div>}
                       {importSuccess && <div className="import-success" role="status">✓ Design loaded successfully!</div>}
-                    </div>
-                    <div className="export-divider" />
-                    <div className="export-section">
-                      <div className="section-title">Current Settings</div>
+                    </Section>
+                    <Section title="Current Settings" sectionKey="exportPreview" defaultOpen={false}>
                       <div className="json-preview" aria-label="Current settings JSON" tabIndex={0}>
                       {JSON.stringify(settings, null, 2).replace(/"([a-zA-Z0-9_]+)":/g, '$1:')}
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {tab !== "export/import" && (
-                <button 
-                  className="randomize-global-btn"
-                  onClick={handleRandomize}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    marginTop: '20px', /* Generous spacing from the sliders above it */
-                    background: 'rgba(255, 200, 40, 0.06)',
-                    border: '1px solid rgba(255, 200, 40, 0.2)',
-                    borderRadius: '8px',
-                    color: '#ffc828',
-                    fontFamily: "'Poppins', sans-serif",
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 200, 40, 0.12)'}
-                  onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 200, 40, 0.06)'}
-                >
-                  🎲 Randomize Design
-                </button>
+                    </Section>
+                  </>
                 )}
 
                 <a href="https://ko-fi.com/bankenichi" target="_blank" rel="noopener noreferrer" className="kofi-mobile" title="Support me on Ko-fi" aria-label="Support on Ko-fi">

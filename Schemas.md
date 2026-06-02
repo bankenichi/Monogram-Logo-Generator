@@ -25,37 +25,40 @@ The single object that describes a complete design. Every key has a default in `
 | `texture` | enum | `none`, `crosshatch`, `dots`, `grid`, `lines` | `"none"` | Low-opacity overlay drawn inside the shape clip. |
 | `fontFamily` | enum | One of `FONTS[*].family` (see §2) | `"Poppins"` | Must match an entry in the `FONTS` array exactly. |
 
-### Background gradient
+### Background
 
-| Key | Type | Range | Default | Notes |
+| Key | Type | Range / Values | Default | Notes |
 |---|---|---|---|---|
-| `bgTop` | hex color | `#rrggbb` | `"#160e3c"` | First stop. |
-| `bgBot` | hex color | `#rrggbb` | `"#0a0624"` | Second stop. |
-| `bgGradientType` | enum | `linear`, `radial` | `"linear"` | Radial ignores angle. |
-| `bgGradientAngle` | number | 0–360 | `90` | Degrees. `0` = right, `90` = down. |
-| `bgGradientStop` | number | 10–100 | `100` | Position of `bgBot` along the gradient, as a percentage. |
+| `bgMode` | enum | `solid`, `gradient` | `"gradient"` | When solid, only `bgTop` is used. |
+| `bgTop` | hex color | `#rrggbb` | `"#160e3c"` | First stop (solid color or gradient start). |
+| `bgBot` | hex color | `#rrggbb` | `"#0a0624"` | Second stop. Ignored when `bgMode === "solid"`. |
+| `bgGradientType` | enum | `linear`, `radial` | `"linear"` | Ignored when `bgMode === "solid"`. |
+| `bgGradientAngle` | number | 0–360 | `90` | Degrees. `0` = right, `90` = down. Ignored when solid. |
+| `bgGradientStop` | number | 10–100 | `100` | Position of `bgBot` along the gradient, as a percentage. Ignored when solid. |
 
-### Big-letter gradient
+### Big-letter
 
-| Key | Type | Range | Default |
-|---|---|---|---|
-| `kTop` | hex color | `#rrggbb` | `"#ffdc50"` |
-| `kBot` | hex color | `#rrggbb` | `"#c88c14"` |
-| `kGradientType` | enum | `linear`, `radial` | `"linear"` |
-| `kGradientAngle` | number | 0–360 | `90` |
-| `kGradientStop` | number | 10–100 | `100` |
+| Key | Type | Range / Values | Default | Notes |
+|---|---|---|---|---|
+| `kMode` | enum | `solid`, `gradient` | `"gradient"` | When solid, only `kTop` is used as the fill color. |
+| `kTop` | hex color | `#rrggbb` | `"#ffdc50"` | Top color (solid fill or gradient start). |
+| `kBot` | hex color | `#rrggbb` | `"#c88c14"` | Bottom color. Ignored when `kMode === "solid"`. |
+| `kGradientType` | enum | `linear`, `radial` | `"linear"` | Ignored when solid. |
+| `kGradientAngle` | number | 0–360 | `90` | Ignored when solid. |
+| `kGradientStop` | number | 10–100 | `100` | Ignored when solid. |
 
-### Name-text gradient
+### Name-text
 
-| Key | Type | Range | Default |
-|---|---|---|---|
-| `nameTop` | hex color | `#rrggbb` | `"#ffc828"` |
-| `nameBot` | hex color | `#rrggbb` | `"#ffc828"` |
-| `nameGradientType` | enum | `linear`, `radial` | `"linear"` |
-| `nameGradientAngle` | number | 0–360 | `90` |
-| `nameGradientStop` | number | 10–100 | `100` |
+| Key | Type | Range / Values | Default | Notes |
+|---|---|---|---|---|
+| `nameMode` | enum | `solid`, `gradient` | `"gradient"` | When solid, only `nameTop` is used as the fill color. |
+| `nameTop` | hex color | `#rrggbb` | `"#ffc828"` | Solid color or gradient start. |
+| `nameBot` | hex color | `#rrggbb` | `"#ffc828"` | Gradient end. Ignored when `nameMode === "solid"`. |
+| `nameGradientType` | enum | `linear`, `radial` | `"linear"` | Ignored when solid. |
+| `nameGradientAngle` | number | 0–360 | `90` | Ignored when solid. |
+| `nameGradientStop` | number | 10–100 | `100` | Ignored when solid. |
 
-### Outline (perimeter stroke of the shape)
+### Outline
 
 | Key | Type | Range | Default |
 |---|---|---|---|
@@ -72,15 +75,13 @@ The single object that describes a complete design. Every key has a default in `
 | `ring2` | hex color | `#rrggbb` | `"#643cb4"` | Inner ring color. |
 | `ring1Width` | number | 1–20 | `5` | Outer ring stroke width. |
 | `ring2Width` | number | 1–12 | `2` | Inner ring stroke width. |
-| `ring1Gap` | number | 4–60 | `18` | Distance from outer to inner ring (px). Named `ring1Gap` for historical reasons — it sets the inner ring's offset from the outer. |
+| `ring1Gap` | number | 4–60 | `18` | Distance from outer to inner ring (px). |
 
 ### Glow
 
 | Key | Type | Range | Default | Notes |
 |---|---|---|---|---|
-| `glow` | boolean | — | `true` | Enable shadow passes around the big letter. |
-| `glowColor` | hex color | `#rrggbb` | `"#ffdc50"` | Halo color. |
-| `glowIntensity` | number | 0.2–3.0 (step 0.1) | `1.0` | Scales the number and blur radius of shadow passes. |
+*(Glow, glow color, and glow intensity are now inside `effects.glow` — see the Effects section below.)*
 
 ### Typography
 
@@ -89,9 +90,37 @@ The single object that describes a complete design. Every key has a default in `
 | `letterSize` | number | 300–700 (step 10) | `650` | Font size of `bigLetter` in canvas px. |
 | `nameSize` | number | 48–160 (step 4) | `84` | Font size of `name`. |
 | `letterSpacing` | number | 0–60 | `28` | Per-character spacing on `name`. |
-| `letterOffsetX` | number | -200–200 (step 5) | `0` | Horizontal nudge of `bigLetter` from center. |
-| `letterOffsetY` | number | -200–200 (step 5) | `0` | Vertical nudge of `bigLetter` from center. |
-| `nameOffsetY` | number | -200–200 (step 5) | `0` | Vertical nudge of `name` from its computed baseline. |
+| `letterOffsetX` | number | -200–200 (step 5) | `0` | Horizontal nudge of `bigLetter`. |
+| `letterOffsetY` | number | -200–200 (step 5) | `0` | Vertical nudge of `bigLetter`. |
+| `nameOffsetY` | number | -200–200 (step 5) | `0` | Vertical nudge of `name`. |
+
+### Effects (`effects` sub-object)
+
+Renderer reads from `settings.effects.*` exclusively. All glow and shadow settings live in this sub-object.
+
+| Path | Type | Default | Notes |
+|---|---|---|---|
+| `effects.glow` | `{enabled,color,intensity}` | `{true,"#ffdc50",1.0}` | Big-letter glow. |
+| `effects.nameGlow` | `{enabled,color,intensity}` | `{true,"#ffc828",1.0}` | Name glow. |
+| `effects.shadow` | `{enabled,dx,dy,blur,color,opacity}` | `{true,4,4,8,"#000000",0.5}` | Big-letter drop shadow. |
+| `effects.nameShadow` | `{enabled,dx,dy,blur,color,opacity}` | `{true,3,3,6,"#000000",0.5}` | Name drop shadow. |
+| `effects.emboss` | `{enabled,depth,angle,highlight,shadow,opacity}` | `{false,3,135,"#ffffff","#000000",0.6}` | Two-offset emboss (F18). |
+
+### Wave 7 keys
+
+Now shipped. All defaults are identity/no-op so old data is unaffected (all defaulted in `migrateSettings`).
+
+| Key | Type | Range | Default | Feature | Notes |
+|---|---|---|---|---|---|
+| `letterScaleX` | number | 0.5–2.0 (0.05) | `1.0` | F19 | Big-letter non-uniform X scale. |
+| `letterScaleY` | number | 0.5–2.0 (0.05) | `1.0` | F19 | Big-letter non-uniform Y scale. |
+| `letterSkewX` | number | -45–45 (1, °) | `0` | F19 | Big-letter horizontal skew. |
+| `letterSkewY` | number | -45–45 (1, °) | `0` | F19 | Big-letter vertical skew. |
+| `letterRotate` | number | -180–180 (1, °) | `0` | F19 | Big-letter rotation about draw anchor. |
+| `effects.emboss` | `{enabled,depth,angle,highlight,shadow,opacity}` | `{false,3,135,"#ffffff","#000000",0.6}` | F18 | Two-offset emboss on big letter. |
+| `letterBlendMode` | string | `BLEND_MODES` | `"normal"` | F16 | Canvas `globalCompositeOperation` / SVG `mix-blend-mode`. |
+| `letterOpacity` | number | 0–1 (0.05) | `1.0` | F16 | Big-letter fill opacity. |
+| `layers` | `[{id,label,visible}]` | canonical 4-layer array | all visible | F17 | Draw order + per-layer visibility. Background pinned to index 0 in UI. |
 
 ### Complete `DEFAULT_SETTINGS`
 
@@ -100,41 +129,39 @@ const DEFAULT_SETTINGS = {
   bigLetter: "E",
   name: "EXAMPLE",
   shape: "circle",
+  bgMode: "gradient",
   bgTop: "#160e3c",
   bgBot: "#0a0624",
-  bgGradientType: "linear",
-  bgGradientAngle: 90,
-  bgGradientStop: 100,
+  bgGradientType: "linear", bgGradientAngle: 90, bgGradientStop: 100,
+  kMode: "gradient",
   kTop: "#ffdc50",
   kBot: "#c88c14",
-  kGradientType: "linear",
-  kGradientAngle: 90,
-  kGradientStop: 100,
+  kGradientType: "linear", kGradientAngle: 90, kGradientStop: 100,
+  nameMode: "gradient",
   nameTop: "#ffc828",
   nameBot: "#ffc828",
-  nameGradientType: "linear",
-  nameGradientAngle: 90,
-  nameGradientStop: 100,
-  outlineColor: "#100a2e",
-  ring1: "#ffc828",
-  ring2: "#643cb4",
-  ring1Width: 5,
-  ring2Width: 2,
-  ring1Gap: 18,
-  showRing1: true,
-  showRing2: true,
-  glow: true,
-  glowColor: "#ffdc50",
-  glowIntensity: 1.0,
-  letterSize: 650,
-  nameSize: 84,
-  letterSpacing: 28,
-  outlineWidth: 2,
-  nameOffsetY: 0,
-  letterOffsetX: 0,
-  letterOffsetY: 0,
-  fontFamily: "Poppins",
-  texture: "none",
+  nameGradientType: "linear", nameGradientAngle: 90, nameGradientStop: 100,
+  outlineColor: "#100a2e", outlineWidth: 2,
+  ring1: "#ffc828", ring2: "#643cb4", ring1Width: 5, ring2Width: 2, ring1Gap: 18,
+  showRing1: true, showRing2: true,
+  effects: {
+    glow:       { enabled: true,  color: "#ffdc50", intensity: 1.0 },
+    nameGlow:   { enabled: true,  color: "#ffc828", intensity: 1.0 },
+    shadow:     { enabled: true,  dx: 4, dy: 4, blur: 8, color: "#000000", opacity: 0.5 },
+    nameShadow: { enabled: true, dx: 3, dy: 3, blur: 6, color: "#000000", opacity: 0.5 },
+    emboss:     { enabled: false, depth: 3, angle: 135, highlight: "#ffffff", shadow: "#000000", opacity: 0.6 }
+  },
+  letterSize: 650, nameSize: 84, letterSpacing: 28,
+  nameOffsetY: 0, letterOffsetX: 0, letterOffsetY: 0,
+  fontFamily: "Poppins", texture: "none",
+  letterScaleX: 1.0, letterScaleY: 1.0, letterSkewX: 0, letterSkewY: 0, letterRotate: 0,
+  letterBlendMode: "normal", letterOpacity: 1.0,
+  layers: [
+    { id: "background", label: "Background", visible: true },
+    { id: "rings",      label: "Rings",      visible: true },
+    { id: "bigLetter",  label: "Big Letter",  visible: true },
+    { id: "name",       label: "Name",        visible: true },
+  ],
 };
 ```
 
@@ -144,28 +171,37 @@ const DEFAULT_SETTINGS = {
 
 ```js
 const FONTS = [
-  { label: "Poppins",        family: "Poppins",           weight: 700, style: "sans-serif" },
-  { label: "Playfair SC",    family: "Playfair Display",  weight: 700, style: "serif" },
-  { label: "Bebas Neue",     family: "Bebas Neue",        weight: 400, style: "display" },
-  { label: "Cinzel",         family: "Cinzel",            weight: 700, style: "roman" },
-  { label: "Dancing Script", family: "Dancing Script",    weight: 700, style: "script" },
-  { label: "Space Mono",     family: "Space Mono",        weight: 700, style: "mono" },
-  { label: "Cormorant",      family: "Cormorant Upright", weight: 700, style: "elegant" },
-  { label: "Abril Fatface",  family: "Abril Fatface",     weight: 400, style: "display" },
+  { label: "Poppins",           family: "Poppins",           weight: 700, style: "sans-serif" },
+  { label: "Playfair SC",       family: "Playfair Display",  weight: 700, style: "serif" },
+  { label: "Bebas Neue",        family: "Bebas Neue",        weight: 400, style: "display" },
+  { label: "Cinzel",            family: "Cinzel",            weight: 700, style: "roman" },
+  { label: "Dancing Script",    family: "Dancing Script",    weight: 700, style: "script" },
+  { label: "Space Mono",        family: "Space Mono",        weight: 700, style: "mono" },
+  { label: "Cormorant",         family: "Cormorant Upright",  weight: 700, style: "elegant" },
+  { label: "Abril Fatface",     family: "Abril Fatface",     weight: 400, style: "display" },
+  { label: "Cinzel Decorative", family: "Cinzel Decorative", weight: 700, style: "display" },
+  { label: "UnifrakturCook",    family: "UnifrakturCook",    weight: 700, style: "blackletter" },
+  { label: "Pirata One",        family: "Pirata One",        weight: 400, style: "display" },
+  { label: "Audiowide",         family: "Audiowide",         weight: 400, style: "display" },
+  { label: "Black Ops One",     family: "Black Ops One",     weight: 400, style: "display" },
+  { label: "Russo One",         family: "Russo One",         weight: 400, style: "display" },
+  { label: "Caveat",            family: "Caveat",            weight: 700, style: "handwriting" },
+  { label: "Special Elite",     family: "Special Elite",     weight: 400, style: "display" },
+  { label: "Pacifico",          family: "Pacifico",          weight: 400, style: "script" },
+  { label: "Bungee",            family: "Bungee",            weight: 400, style: "signage" },
+  { label: "Monoton",           family: "Monoton",           weight: 400, style: "retro" },
+  { label: "Bangers",           family: "Bangers",           weight: 400, style: "comic" },
+  { label: "Rye",               family: "Rye",               weight: 400, style: "western" },
+  { label: "Silkscreen",        family: "Silkscreen",        weight: 400, style: "pixel" },
+  { label: "Righteous",         family: "Righteous",         weight: 400, style: "display" },
+  { label: "Merriweather",      family: "Merriweather",      weight: 700, style: "serif" },
 ];
 ```
 
 - `label` — what the UI shows under the font preview.
 - `family` — what gets used in CSS / canvas `font` strings. **Must match the `@font-face` `font-family` exactly.**
-- `weight` — used when calling `document.fonts.load(...)` and inside `getFontString`.
+- `weight` — used when constructing the `FontFace` objects in the font-load effect (the big letter also loads a weight-900 variant) and inside `getFontString`.
 - `style` — purely descriptive metadata; not used by the renderer.
-
-To add a font:
-
-1. Drop the woff2 into `fonts/`.
-2. Add an `@font-face` declaration to the `<style>` block in `<head>`.
-3. Append an entry to `FONTS`.
-4. Verify font preview thumbnails render.
 
 ---
 
@@ -175,14 +211,12 @@ To add a font:
 const SHAPES = ["none", "circle", "square", "rounded-square", "diamond", "hexagon", "triangle", "pentagram", "hexagram"];
 ```
 
-`"none"` renders no background shape, texture, rings, or outline — only the big letter and name text on a transparent background. Background color and ring controls are visually disabled in the UI when `"none"` is selected.
+`"none"` renders no background shape, texture, rings, or outline — only the big letter and name text on a transparent background.
 
 Each shape has two parallel implementations:
 
 - Canvas: `buildShapePath(ctx, shape, cx, cy, R)`, `clipShape(...)`, `strokeShape(...)`.
 - SVG: `buildShapeSVGPath(shape, cx, cy, R)`.
-
-Adding a shape means updating **both**. See `Agents.md` §"Add a new shape" for the step-by-step.
 
 ---
 
@@ -194,38 +228,87 @@ const TEXTURES = ["none", "crosshatch", "dots", "grid", "lines"];
 
 Drawn by `drawTexture(ctx, texture, W, H)` as low-alpha overlays inside the shape clip. `"none"` short-circuits and draws nothing.
 
-Textures are exported to SVG via `buildTexturePattern()` inside `exportSVG`. Each texture maps to a `<pattern>` element with `patternUnits="userSpaceOnUse"`, clipped to the shape via `clip-path="url(#shapeClip)"`. The SVG texture overlay matches the canvas rendering.
+Textures are exported to SVG via `buildTexturePattern()` inside `exportSVG`. Each texture maps to a `<pattern>` element with `patternUnits="userSpaceOnUse"`, clipped to the shape via `clip-path="url(#shapeClip)"`.
 
 ---
 
-## 5. `PRESETS`
+## 5. `SHIPPED_PRESETS` and `presetSlots`
 
-Array of partial `Settings` objects. Each preset only specifies the keys it cares about; missing keys keep the user's current value. Order matters — it's the display order in both the desktop sidebar and the mobile panel.
+### `SHIPPED_PRESETS`
+
+Six built-in design presets that serve as the "factory defaults" for the first 6 slots. Each is a complete settings snapshot (all keys from `DEFAULT_SETTINGS` plus a `name` field). These are constants and cannot be modified by the user.
 
 ```js
-const PRESETS = [
-  { bigLetter: "RG", name: "Royal Gold",     shape: "circle", bgTop: "#160e3c", ... },
-  { bigLetter: "MA", name: "Midnight Aurora", ... },
-  { bigLetter: "CE", name: "Crimson Ember",   ... },
-  { bigLetter: "AS", name: "Arctic Silver",   ... },
-  { bigLetter: "FO", name: "Forest Obsidian", ... },
-  { bigLetter: "NN", name: "Neon Noir",       ... },
+const SHIPPED_PRESETS = [
+  { name: "Royal Gold",      bigLetter: "RG", bgTop: "#160e3c", ... },
+  { name: "Midnight Aurora",  bigLetter: "MA", bgTop: "#080c28", ... },
+  { name: "Crimson Ember",    bigLetter: "CE", bgTop: "#500808", ... },
+  { name: "Arctic Silver",    bigLetter: "AS", bgTop: "#e6ebf5", ... },
+  { name: "Forest Obsidian",  bigLetter: "FO", bgTop: "#0a1e10", ... },
+  { name: "Neon Noir",        bigLetter: "NN", bgTop: "#060408", ... },
 ];
 ```
 
-Every preset must include at minimum:
+Active detection: a preset is visually marked active when `settings.name === p.name && settings.bgTop === p.bgTop`.
 
-- `bigLetter` — the preview thumbnail uses this.
-- `name` — used as the preset's display label *and* as the lower-badge text when applied. Treat it as user-visible.
-- `bgTop` — the active-preset check in JSX uses `settings.name === p.name && settings.bgTop === p.bgTop`. If two presets share both, only the first will appear active.
+### `presetSlots`
 
-A preset's `name` doubles as its identity key. Don't change a preset's name after release — it will silently break shareable URLs that depend on equality with the active-state check.
+A React state object managing up to 10 user-configurable preset slots. The first 6 slots are pre-filled from `SHIPPED_PRESETS` on first load (or reset).
 
-**Active-preset detection rule** (literal code):
-
+**Shape:**
 ```js
-active={settings.name === p.name && settings.bgTop === p.bgTop}
+{
+  slotIndex: 0–9,        // currently selected slot
+  slots: [
+    {
+      name: string,      // preset display name
+      data: Settings,    // full settings snapshot (null if slot is empty)
+      shipped: boolean,  // true if this slot matches a shipped preset (cannot be deleted, only reset)
+    },
+    ...
+  ],
+  saveTarget: number|null,  // slot index being targeted for save (triggers modal)
+}
 ```
+
+**Constants:**
+- `TOTAL_PRESET_SLOTS = 10`
+- `SHIPPED_SLOT_COUNT = 6`
+- `PRESET_SLOTS_KEY = "monogram-studio-preset-slots"`
+
+**Persistence:** stored in `localStorage["monogram-studio-preset-slots"]`. Managed by `persistSlots()` and `getOrInitSlots()` top-level helper functions.
+
+**Actions:**
+- `handleSaveToSlot(slotIndex)` — saves current settings to the given slot
+- `handleClearSlot(slotIndex)` — empties a slot (sets `data: null`)
+- `handleResetSlotToShipped(slotIndex)` — restores a slot to its original shipped preset data
+- `commitSaveToSlot()` — confirms save after modal confirmation
+
+**Export/Import:** `exportPresets()` exports all non-empty slots as a JSON bundle. `importPresets()` imports a bundle and merges into current slots.
+
+**Migration:** `migrateSettings()` ensures old shared URLs/JSON files without `bgMode`/`kMode`/`nameMode` keys get safe defaults (all `"gradient"`) without losing existing settings.
+
+### User presets persistence
+
+Preset slots are stored under a **separate** localStorage key from design settings, so they survive reset-to-default and JSON import.
+
+| Key | Format | Written by | Initialised by |
+|---|---|---|---|
+| `monogram-studio-preset-slots` | JSON array of 10 slot objects | `persistSlots()` on any save/clear/reset | `getOrInitSlots()` on mount |
+
+Each slot object:
+```js
+{
+  slot:         0–9,               // index; never changes
+  name:         string | null,     // null means empty
+  settings:     object | null,     // full settings snapshot; null if empty
+  isShipped:    boolean,           // true for slots 0–5 (factory presets)
+  originalName: string | null,     // shipped preset name for reset label
+  modifiedAt:   number | null      // Date.now() of last user write; null if untouched
+}
+```
+
+Bootstrap: `getOrInitSlots()` populates slots 0–5 from `SHIPPED_PRESETS` and slots 6–9 as empty. If a valid 10-slot array already exists in localStorage, it is returned as-is (no re-bootstrap).
 
 ---
 
@@ -235,23 +318,23 @@ active={settings.name === p.name && settings.bgTop === p.bgTop}
 #config=<base64>
 ```
 
-- `<base64>` = `btoa(JSON.stringify(settings))`.
-- Decoded by `decodeSettings(str) = JSON.parse(atob(str))`, wrapped in try/catch.
-- The decoded object is merged with `DEFAULT_SETTINGS`:
-
-  ```js
-  const decoded = decodeSettings(hash.slice(7));
-  if (decoded && decoded.bgTop) return { ...DEFAULT_SETTINGS, ...decoded };
-  ```
-
-  The `decoded.bgTop` truthy check is a cheap "this looks like a real settings object" guard. **Do not remove `bgTop` from `DEFAULT_SETTINGS` or the share-link load logic will reject all incoming hashes.**
-
+- `<base64>` = `btoa(unescape(encodeURIComponent(JSON.stringify(settings))))`.
+- Decoded by `decodeSettings(str) = JSON.parse(decodeURIComponent(escape(atob(str))))`, wrapped in try/catch.
+- The decoded object is merged with `DEFAULT_SETTINGS` via spread: `{ ...DEFAULT_SETTINGS, ...decoded }`.
 - Priority: URL hash > localStorage > `DEFAULT_SETTINGS`.
-- The hash is **not** updated as the user edits — it's only written when the user clicks Share. Visiting a shared link then making edits invisibly shifts you off the hash; refreshing brings the original hash back.
 
-### Forward compatibility
+---
 
-When you add a new key to `DEFAULT_SETTINGS`, old shared links will continue to work because the merge with `DEFAULT_SETTINGS` fills in the missing key. **Removing or renaming a key breaks old links.** If you must rename, write a migration in `getInitialSettings()` that maps the old key to the new one.
+## 6b. Migrations
+
+Track settings-key additions so old shared URLs / JSON files continue to load without error.
+
+All migrations run via `migrateSettings(s)` which is called from both `getInitialSettings()` (page load) and `importJSON` (file import). The function mutates the incoming object and returns it.
+
+| ID | Sprint | Keys | Behaviour |
+|---|---|---|---|
+| M1 | F12 | `bgMode`, `kMode`, `nameMode` | Defaults to `"gradient"` when absent. Old data with no mode key renders as a gradient (identical to pre-F12 behavior). |
+| M2 | F14 | `effects` sub-object | Initialises `effects.glow`, `effects.shadow`, `effects.nameGlow`, and `effects.nameShadow` sub-objects with safe defaults when absent. |
 
 ---
 
@@ -268,20 +351,17 @@ When you add a new key to `DEFAULT_SETTINGS`, old shared links will continue to 
 
 - Pretty-printed with `JSON.stringify(settings, null, 2)`.
 - File name: `monogram_<bigLetter>_<name>.json`.
-- Import path: file is read as text, parsed, validated (`parsed.bgTop !== undefined`), then merged with current settings via `{...current, ...parsed}` and pushed onto the history.
-- Import rejects on parse error or missing `bgTop` and surfaces `importError` in the UI.
-
-The JSON export is the most stable persistence channel — there's no base64 encoding to break, no URL length limit, and no localStorage capacity limit. Recommend it as the canonical backup format.
+- Import: parsed, validated (`parsed.bgTop !== undefined` gate), merged with current settings via spread.
 
 ---
 
-## 8. localStorage entry
+## 8. localStorage entries
 
 | Key | Value | Written by | Read by |
 |---|---|---|---|
-| `monogram-studio-settings` | `JSON.stringify(settings)` | `useEffect [settings]` | `getInitialSettings()` on mount |
-
-The write is unthrottled — every keystroke that changes `settings` writes to localStorage. This is fine in practice (the writes are small and localStorage is synchronous-fast) but could become a hot spot if `settings` grows substantially.
+| `monogram-studio-settings` | `JSON.stringify(settings)` | `useEffect` with **50ms debounce** via `useDebounce` | `getInitialSettings()` on mount |
+| `monogram-studio-ui-state` | `JSON.stringify({ sections: { [key]: boolean } })` | `useUIState` hook (on section toggle) | `useUIState` hook on mount |
+| `monogram-studio-preset-slots` | `JSON.stringify({ slotIndex, slots, saveTarget })` | `persistSlots()` (on any preset slot change) | `getOrInitSlots()` on mount |
 
 ---
 
@@ -292,7 +372,7 @@ When you change anything in `Settings`, verify:
 - [ ] Key is in `DEFAULT_SETTINGS`.
 - [ ] Key has a UI control somewhere in the design / colors / export panel.
 - [ ] Key is read by `drawMonogram`.
-- [x] Key is read by `exportSVG` (all visual settings including textures are now exported).
+- [ ] Key is read by `exportSVG`.
 - [ ] Range matches the slider min/max in the design panel JSX.
 - [ ] `handleRandomize` emits a sane value for the key (or you've decided to skip randomizing it).
 - [ ] A round-trip JSON export + import preserves the value.
